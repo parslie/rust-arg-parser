@@ -51,11 +51,13 @@ pub struct Parser {
 
 impl Parser {
     pub fn new() -> Self {
-        Self {
+        let mut parser = Self {
             positionals: Vec::new(),
             options: Vec::new(),
             flags: Vec::new(),
-        }
+        };
+        parser.add_flag("help", Some("h"), Some("help"), false);
+        parser
     }
 
     pub fn add_positional(&mut self, dest: &str, data_type: DataType, optionality: Optionality) {
@@ -130,6 +132,117 @@ impl Parser {
             },
         };
         self.flags.push(argument);
+    }
+
+    pub fn print_help(&self) {
+        let spacing = 2;
+
+        let positionals = self.positionals.clone();
+        let mut options = self.options.clone();
+        options.append(self.flags.clone().as_mut());
+
+        let options_usage = if !options.is_empty() {
+            " [options...]"
+        } else {
+            ""
+        };
+        let mut positional_usage = String::new();
+        let mut optionals_usage = String::new();
+
+        let mut option_help = Vec::new();
+        let mut positional_help = Vec::new();
+        let mut optional_help = Vec::new();
+        let mut name_len = 0usize;
+
+        for positional in &positionals {
+            let desc = "TODO: DESC".to_string();
+            let name = positional.dest.clone();
+
+            if name.len() > name_len {
+                name_len = name.len();
+            }
+
+            if let Optionality::Required = positional.optionality {
+                positional_usage.push_str(format!(" {}", positional.dest).as_str());
+                positional_help.push((name, desc));
+            } else {
+                optionals_usage.push_str(format!(" [{}]", positional.dest).as_str());
+                optional_help.push((name, desc));
+            }
+        }
+
+        for option in &options {
+            let desc = "TODO: DESC".to_string();
+            let mut name = String::new();
+            if let Some(short) = &option.short {
+                name.push_str(format!("-{}", short).as_str());
+            }
+            if let Some(long) = &option.long {
+                if name.is_empty() {
+                    name.push_str(format!("    --{}", long).as_str());
+                } else {
+                    name.push_str(format!(", --{}", long).as_str());
+                }
+            }
+
+            if name.len() > name_len {
+                name_len = name.len();
+            }
+
+            option_help.push((name, desc));
+        }
+
+        println!(
+            "Usage: {}{}{}{}",
+            env!("CARGO_PKG_NAME"),
+            options_usage,
+            positional_usage,
+            optionals_usage
+        );
+        println!();
+
+        if !positional_help.is_empty() || optional_help.is_empty() {
+            println!("Positionals: ");
+
+            for (name, desc) in &positional_help {
+                for _ in 0..spacing {
+                    print!(" ");
+                }
+                print!("{}", name);
+                for _ in 0..(name_len + spacing - name.len()) {
+                    print!(" ");
+                }
+                println!("{}", desc);
+            }
+
+            for (name, desc) in &optional_help {
+                for _ in 0..spacing {
+                    print!(" ");
+                }
+                print!("{}", name);
+                for _ in 0..(name_len + spacing - name.len()) {
+                    print!(" ");
+                }
+                println!("{}", desc);
+            }
+
+            println!();
+        }
+
+        if !option_help.is_empty() {
+            println!("Options: ");
+
+            for (name, desc) in &option_help {
+                for _ in 0..spacing {
+                    print!(" ");
+                }
+                print!("{}", name);
+                for _ in 0..(name_len + spacing - name.len()) {
+                    print!(" ");
+                }
+                println!("{}", desc);
+            }
+        }
     }
 
     pub fn parse_arguments(&self) -> ParseResult {
