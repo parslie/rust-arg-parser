@@ -1,16 +1,6 @@
-fn validate_short(short: Option<&str>) -> bool {
-    match short {
-        None => true,
-        Some(val) => !val.starts_with("-"),
-    }
-}
+use self::validation::{validate_long, validate_short};
 
-fn validate_long(long: Option<&str>) -> bool {
-    match long {
-        None => true,
-        Some(val) => !val.starts_with("--"),
-    }
-}
+mod validation;
 
 #[derive(Debug)]
 pub enum Optionality {
@@ -78,7 +68,7 @@ impl Parser {
             );
         } else if !validate_short(short) {
             panic!("The short of option '{}' is invalid.", dest);
-        } else if !validate_short(long) {
+        } else if !validate_long(long) {
             panic!("The long of option '{}' is invalid.", dest);
         }
 
@@ -103,7 +93,7 @@ impl Parser {
             panic!("The short and long of flag '{}' can't both be empty.", dest);
         } else if !validate_short(short) {
             panic!("The short of flag '{}' is invalid.", dest);
-        } else if !validate_short(long) {
+        } else if !validate_long(long) {
             panic!("The long of flag '{}' is invalid.", dest);
         }
 
