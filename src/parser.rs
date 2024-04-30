@@ -1,15 +1,31 @@
+use std::collections::HashMap;
+
 use self::validation::{validate_long, validate_short};
 
 mod validation;
 
 #[derive(Debug)]
+pub enum ParsedArgument {
+    Int32(i32),
+    Float32(f32),
+    String(String),
+    Bool(bool),
+    None,
+}
+
+#[derive(Debug)]
+pub struct ParseResult {
+    arguments: HashMap<String, ParsedArgument>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Optionality {
     Required,
     Optional,
     Default(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DataType {
     Int32,
     Float32,
@@ -17,7 +33,7 @@ pub enum DataType {
     Bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct UnparsedArgument {
     dest: String,
     data_type: DataType,
@@ -114,5 +130,9 @@ impl Parser {
             },
         };
         self.flags.push(argument);
+    }
+
+    pub fn parse_arguments(&self) -> ParseResult {
+        todo!()
     }
 }
