@@ -100,7 +100,12 @@ impl Parser {
         long: Option<&str>,
         optionality: Optionality,
     ) {
-        // TODO: make it impossible to add flags this way
+        if let DataType::Bool = data_type {
+            panic!(
+                "The bool option '{}' should be added with add_flag instead.",
+                dest
+            );
+        }
 
         if short.is_none() && long.is_none() {
             panic!(
