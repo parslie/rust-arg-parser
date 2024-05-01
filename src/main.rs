@@ -38,8 +38,6 @@ fn main() {
     parser.add_flag("set_false_flag", Some("q"), None, true);
     parser.add_flag("set_true_flag", None, Some("qwerty"), false);
 
-    // let parse_result = parser.parse_arguments();
-    // println!("{:?}", parse_result);
-
-    parser.print_help();
+    let parse_result = parser.parse_arguments();
+    println!("{:?}", parse_result);
 }

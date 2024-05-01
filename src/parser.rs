@@ -13,11 +13,6 @@ pub enum ParsedArgument {
     None,
 }
 
-#[derive(Debug)]
-pub struct ParseResult {
-    arguments: HashMap<String, ParsedArgument>,
-}
-
 #[derive(Debug, Clone)]
 pub enum Optionality {
     Required,
@@ -25,7 +20,7 @@ pub enum Optionality {
     Default(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
     Int32,
     Float32,
@@ -42,6 +37,32 @@ struct UnparsedArgument {
     optionality: Optionality,
 }
 
+impl UnparsedArgument {
+    pub fn get_name(&self) -> String {
+        if self.short.is_none() && self.long.is_none() {
+            self.dest.clone()
+        } else if self.short.is_some() && self.long.is_some() {
+            let short = self.short.as_ref().unwrap();
+            let long = self.long.as_ref().unwrap();
+            format!("-{}, --{}", short, long)
+        } else if self.short.is_some() {
+            let short = self.short.as_ref().unwrap();
+            format!("-{}", short)
+        } else {
+            let long = self.long.as_ref().unwrap();
+            format!("--{}", long)
+        }
+    }
+
+    pub fn is_positional(&self) -> bool {
+        self.short.is_none() && self.long.is_none()
+    }
+
+    pub fn is_flag(&self) -> bool {
+        !self.is_positional() && self.data_type == DataType::Bool
+    }
+}
+
 #[derive(Debug)]
 pub struct Parser {
     positionals: Vec<UnparsedArgument>,
@@ -56,7 +77,7 @@ impl Parser {
             options: Vec::new(),
             flags: Vec::new(),
         };
-        parser.add_flag("help", Some("h"), Some("help"), false);
+        parser.add_flag("help", None, Some("help"), false);
         parser
     }
 
@@ -79,6 +100,8 @@ impl Parser {
         long: Option<&str>,
         optionality: Optionality,
     ) {
+        // TODO: make it impossible to add flags this way
+
         if short.is_none() && long.is_none() {
             panic!(
                 "The short and long of option '{}' can't both be empty.",
@@ -148,10 +171,12 @@ impl Parser {
         };
         let mut positional_usage = String::new();
         let mut optionals_usage = String::new();
+        let mut defaults_usage = String::new();
 
         let mut option_help = Vec::new();
         let mut positional_help = Vec::new();
         let mut optional_help = Vec::new();
+        let mut defaults_help = Vec::new();
         let mut name_len = 0usize;
 
         for positional in &positionals {
@@ -165,9 +190,12 @@ impl Parser {
             if let Optionality::Required = positional.optionality {
                 positional_usage.push_str(format!(" {}", positional.dest).as_str());
                 positional_help.push((name, desc));
-            } else {
+            } else if let Optionality::Optional = positional.optionality {
                 optionals_usage.push_str(format!(" [{}]", positional.dest).as_str());
                 optional_help.push((name, desc));
+            } else {
+                defaults_usage.push_str(format!(" [{}]", positional.dest).as_str());
+                defaults_help.push((name, desc));
             }
         }
 
@@ -193,11 +221,12 @@ impl Parser {
         }
 
         println!(
-            "Usage: {}{}{}{}",
+            "Usage: {}{}{}{}{}",
             env!("CARGO_PKG_NAME"),
             options_usage,
             positional_usage,
-            optionals_usage
+            optionals_usage,
+            defaults_usage
         );
         println!();
 
@@ -216,6 +245,17 @@ impl Parser {
             }
 
             for (name, desc) in &optional_help {
+                for _ in 0..spacing {
+                    print!(" ");
+                }
+                print!("{}", name);
+                for _ in 0..(name_len + spacing - name.len()) {
+                    print!(" ");
+                }
+                println!("{}", desc);
+            }
+
+            for (name, desc) in &defaults_help {
                 for _ in 0..spacing {
                     print!(" ");
                 }
@@ -245,7 +285,175 @@ impl Parser {
         }
     }
 
-    pub fn parse_arguments(&self) -> ParseResult {
-        todo!()
+    pub fn parse_arguments(&self) -> HashMap<String, ParsedArgument> {
+        let mut parsed_args = HashMap::new();
+        let mut raw_args = std::env::args().skip(1);
+        let mut unparsed_args = self.options.clone();
+        unparsed_args.append(&mut self.flags.clone());
+        unparsed_args.append(&mut self.positionals.clone());
+
+        while let Some(raw_arg) = raw_args.next() {
+            let idx_result = if raw_arg.starts_with("--") {
+                let target_long = &raw_arg[2..];
+                self.find_arg_with_long(target_long, &unparsed_args)
+            } else if raw_arg.starts_with("-") {
+                let target_short = &raw_arg[1..];
+                self.find_arg_with_short(target_short, &unparsed_args)
+            } else {
+                self.find_next_positional(&unparsed_args)
+            };
+
+            match idx_result {
+                Ok(idx) => {
+                    let unparsed_arg = unparsed_args.remove(idx);
+
+                    let value_res = if unparsed_arg.is_flag() {
+                        match &unparsed_arg.optionality {
+                            Optionality::Default(default_val) => match default_val.as_str() {
+                                "true" => Ok("false".to_string()),
+                                "false" => Ok("true".to_string()),
+                                _ => Err(format!("'{}' is not a valid boolean", default_val)),
+                            },
+                            _ => Err("flags must have default values".to_string()),
+                        }
+                    } else if unparsed_arg.is_positional() {
+                        Ok(raw_arg)
+                    } else {
+                        match raw_args.next() {
+                            Some(raw_arg) => Ok(raw_arg),
+                            None => Err(format!(
+                                "no value provided for '{}'",
+                                unparsed_arg.get_name()
+                            )),
+                        }
+                    };
+
+                    match value_res {
+                        Ok(unparsed_val) => {
+                            match self.parse_argument(&unparsed_arg, &unparsed_val) {
+                                Ok(parsed_arg) => parsed_args.insert(unparsed_arg.dest, parsed_arg),
+                                Err(message) => todo!("handle error message"),
+                            };
+                        }
+                        Err(message) => todo!("handle error message"),
+                    };
+                }
+                Err(message) => todo!("handle error message"),
+            };
+        }
+
+        if let Some(ParsedArgument::Bool(true)) = parsed_args.get("help") {
+            self.print_help();
+            std::process::exit(0);
+        }
+
+        for unparsed_arg in unparsed_args {
+            let parse_result = match &unparsed_arg.optionality {
+                Optionality::Required => Err(format!("'{}' is required", unparsed_arg.get_name())),
+                Optionality::Optional => Ok(ParsedArgument::None),
+                Optionality::Default(value) => self.parse_argument(&unparsed_arg, value),
+            };
+
+            match parse_result {
+                Ok(parsed_arg) => parsed_args.insert(unparsed_arg.dest, parsed_arg),
+                Err(message) => todo!("handle error message"),
+            };
+        }
+
+        parsed_args
+    }
+
+    fn find_next_positional(&self, unparsed_args: &Vec<UnparsedArgument>) -> Result<usize, String> {
+        let mut idx_result = Err("too many positionals provided".to_string());
+        let mut is_required = false;
+        let mut has_default = false;
+
+        for (idx, unparsed_arg) in unparsed_args.iter().enumerate() {
+            if unparsed_arg.is_positional() {
+                match &unparsed_arg.optionality {
+                    Optionality::Required => {
+                        if !is_required {
+                            is_required = true;
+                            idx_result = Ok(idx);
+                        }
+                    }
+                    Optionality::Optional => {
+                        if !is_required || has_default {
+                            has_default = false;
+                            is_required = false;
+                            idx_result = Ok(idx);
+                        }
+                    }
+                    Optionality::Default(_) => {
+                        if idx_result.is_err() {
+                            has_default = true;
+                            is_required = false;
+                            idx_result = Ok(idx);
+                        }
+                    }
+                }
+            }
+        }
+
+        idx_result
+    }
+
+    fn find_arg_with_long(
+        &self,
+        target_long: &str,
+        unparsed_args: &Vec<UnparsedArgument>,
+    ) -> Result<usize, String> {
+        for (idx, unparsed_arg) in unparsed_args.iter().enumerate() {
+            if let Some(long) = &unparsed_arg.long {
+                if long == target_long {
+                    return Ok(idx);
+                }
+            }
+        }
+        Err(format!(
+            "could not find corresponding option for '--{}'",
+            target_long
+        ))
+    }
+
+    fn find_arg_with_short(
+        &self,
+        target_short: &str,
+        unparsed_args: &Vec<UnparsedArgument>,
+    ) -> Result<usize, String> {
+        for (idx, unparsed_arg) in unparsed_args.iter().enumerate() {
+            if let Some(short) = &unparsed_arg.short {
+                if short == target_short {
+                    return Ok(idx);
+                }
+            }
+        }
+        Err(format!(
+            "could not find corresponding option for '-{}'",
+            target_short
+        ))
+    }
+
+    fn parse_argument(
+        &self,
+        unparsed_arg: &UnparsedArgument,
+        value: &str,
+    ) -> Result<ParsedArgument, String> {
+        match unparsed_arg.data_type {
+            DataType::Int32 => match value.parse::<i32>() {
+                Ok(res) => Ok(ParsedArgument::Int32(res)),
+                Err(_) => Err(format!("'{}' is not a 32-bit int", value)),
+            },
+            DataType::Float32 => match value.parse::<f32>() {
+                Ok(res) => Ok(ParsedArgument::Float32(res)),
+                Err(_) => Err(format!("'{}' is not a 32-bit float", value)),
+            },
+            DataType::String => Ok(ParsedArgument::String(value.to_string())),
+            DataType::Bool => match value {
+                "true" => Ok(ParsedArgument::Bool(true)),
+                "false" => Ok(ParsedArgument::Bool(false)),
+                _ => Err(format!("'{}' is not a valid boolean", value)),
+            },
+        }
     }
 }
