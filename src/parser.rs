@@ -55,6 +55,10 @@ impl ParseResult {
             _ => panic!("Argument '{}' is not a path", key),
         }
     }
+
+    pub fn has(&self, key: &str) -> bool {
+        self.arguments.contains_key(key)
+    }
 }
 
 #[derive(Debug)]
@@ -349,7 +353,7 @@ impl Parser {
         for unparsed_arg in unparsed_args {
             let parse_result = match &unparsed_arg.optionality {
                 Optionality::Required => Err(format!("'{}' is required", unparsed_arg.get_name())),
-                Optionality::Optional => Ok(ParsedArgument::None),
+                Optionality::Optional => continue,
                 Optionality::Default(value) => self.parse_argument(&unparsed_arg, value),
             };
 

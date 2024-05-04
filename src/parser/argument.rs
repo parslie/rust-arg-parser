@@ -58,5 +58,4 @@ pub enum ParsedArgument {
     String(String),
     Bool(bool),
     Path(PathBuf),
-    None,
 }
