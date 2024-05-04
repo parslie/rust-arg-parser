@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, io::Read, path::PathBuf, process::exit};
+use std::{fs::OpenOptions, io::Read, process::exit};
 
 use parser::{DataType, Optionality, Parser};
 
@@ -6,7 +6,7 @@ mod parser;
 
 fn create_parser() -> Parser {
     let mut parser = Parser::new();
-    parser.add_positional("path", DataType::String, Optionality::Required);
+    parser.add_positional("path", DataType::Path, Optionality::Required);
     parser
 }
 
@@ -14,7 +14,7 @@ fn main() {
     let parser = create_parser();
     let args = parser.parse_arguments();
 
-    let path = PathBuf::from(args.get_string("path"));
+    let path = args.get_path("path");
 
     match OpenOptions::new().read(true).open(path) {
         Ok(mut file) => {

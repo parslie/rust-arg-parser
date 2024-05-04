@@ -1,4 +1,4 @@
-use std::{any::TypeId, collections::HashMap};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use self::validation::{validate_long, validate_short};
 
@@ -10,6 +10,7 @@ pub enum ParsedArgument {
     Float32(f32),
     String(String),
     Bool(bool),
+    Path(PathBuf),
     None,
 }
 
@@ -53,6 +54,13 @@ impl ParseResult {
             _ => panic!("Argument '{}' is not a bool", key),
         }
     }
+
+    pub fn get_path(&self, key: &str) -> PathBuf {
+        match self.get_arg(key) {
+            ParsedArgument::Path(value) => value.to_owned(),
+            _ => panic!("Argument '{}' is not a path", key),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +76,7 @@ pub enum DataType {
     Float32,
     String,
     Bool,
+    Path,
 }
 
 #[derive(Debug, Clone)]
@@ -502,6 +511,10 @@ impl Parser {
                 "true" => Ok(ParsedArgument::Bool(true)),
                 "false" => Ok(ParsedArgument::Bool(false)),
                 _ => Err(format!("'{}' is not a valid boolean", value)),
+            },
+            DataType::Path => match PathBuf::from_str(value) {
+                Ok(path) => Ok(ParsedArgument::Path(path)),
+                Err(_) => Err(format!("'{}' is not a valid path", value)),
             },
         }
     }

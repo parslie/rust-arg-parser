@@ -7,13 +7,13 @@ So I wanted to take my own stab at it to see if I can make one that is at least 
 ```rust
 fn create_parser() -> Parser {
   let parser = Parser::new();
-  parser.add_positional("path", DataType::String, Optionality::Required);
+  parser.add_positional("path", DataType::Path, Optionality::Required);
   parser.add_flag("verbose", Some("v"), Some("verbose"), false)
   parser
 }
 
-fn process_args(args: ParseResults) -> (String, bool) {
-  let path = args.get_string("path");
+fn process_args(args: ParseResults) -> (PathBuf, bool) {
+  let path = args.get_path("path");
   let verbose = args.get_bool("verbose");
   (path, verbose)
 }
