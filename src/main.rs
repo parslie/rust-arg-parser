@@ -1,6 +1,9 @@
 use std::{fs::OpenOptions, io::Read, process::exit};
 
-use parser::{DataType, Optionality, Parser};
+use parser::{
+    argument::{DataType, Optionality},
+    Parser,
+};
 
 mod parser;
 

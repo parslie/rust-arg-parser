@@ -1,18 +1,12 @@
 use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
-use self::validation::{validate_long, validate_short};
+use self::{
+    argument::{DataType, Optionality, ParsedArgument, UnparsedArgument},
+    validation::{validate_long, validate_short},
+};
 
+pub mod argument;
 mod validation;
-
-#[derive(Debug)]
-pub enum ParsedArgument {
-    Int32(i32),
-    Float32(f32),
-    String(String),
-    Bool(bool),
-    Path(PathBuf),
-    None,
-}
 
 pub struct ParseResult {
     arguments: HashMap<String, ParsedArgument>,
@@ -60,57 +54,6 @@ impl ParseResult {
             ParsedArgument::Path(value) => value.to_owned(),
             _ => panic!("Argument '{}' is not a path", key),
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Optionality {
-    Required,
-    Optional,
-    Default(String),
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum DataType {
-    Int32,
-    Float32,
-    String,
-    Bool,
-    Path,
-}
-
-#[derive(Debug, Clone)]
-struct UnparsedArgument {
-    dest: String,
-    data_type: DataType,
-    short: Option<String>,
-    long: Option<String>,
-    optionality: Optionality,
-}
-
-impl UnparsedArgument {
-    pub fn get_name(&self) -> String {
-        if self.short.is_none() && self.long.is_none() {
-            self.dest.clone()
-        } else if self.short.is_some() && self.long.is_some() {
-            let short = self.short.as_ref().unwrap();
-            let long = self.long.as_ref().unwrap();
-            format!("-{}, --{}", short, long)
-        } else if self.short.is_some() {
-            let short = self.short.as_ref().unwrap();
-            format!("-{}", short)
-        } else {
-            let long = self.long.as_ref().unwrap();
-            format!("--{}", long)
-        }
-    }
-
-    pub fn is_positional(&self) -> bool {
-        self.short.is_none() && self.long.is_none()
-    }
-
-    pub fn is_flag(&self) -> bool {
-        !self.is_positional() && self.data_type == DataType::Bool
     }
 }
 
