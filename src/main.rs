@@ -1,6 +1,6 @@
 use std::{fs::OpenOptions, io::Read, path::PathBuf, process::exit};
 
-use parser::{DataType, Optionality, ParsedArgument, Parser};
+use parser::{DataType, Optionality, Parser};
 
 mod parser;
 
@@ -14,11 +14,7 @@ fn main() {
     let parser = create_parser();
     let args = parser.parse_arguments();
 
-    let path = if let ParsedArgument::String(path_str) = &args["path"] {
-        PathBuf::from(path_str)
-    } else {
-        panic!("should be unreachable")
-    };
+    let path = PathBuf::from(args.get_string("path"));
 
     match OpenOptions::new().read(true).open(path) {
         Ok(mut file) => {

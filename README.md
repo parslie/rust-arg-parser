@@ -12,23 +12,15 @@ fn create_parser() -> Parser {
   parser
 }
 
-fn process_args(args: HashMap<String, ParsedArgument>) -> (String, bool) {
-  let mut path = String::new();
-  let mut verbose = false;
-
-  if let ParsedArgument::String(value) = &args["path"] {
-    path = value.to_owned();
-  }
-  if let ParsedArgument::Bool(value) = &args["verbose"] {
-    verbose = value.to_owned();
-  }
-
+fn process_args(args: ParseResults) -> (String, bool) {
+  let path = args.get_string("path");
+  let verbose = args.get_bool("verbose");
   (path, verbose)
 }
 
 fn main() {
   let parser = create_parser();
-  let unprocessed_args = parser.parse_arguments();
+  let args = parser.parse_arguments();
   let (path, verbose) = process_args(args);
   // TODO: do stuff here...
 }
@@ -59,4 +51,3 @@ When adding arguments to your parser, you specify their type via the DataType en
 
 ## Planned Features
 - Sub-parsers will be added, so that CLI tools like git can be created.
-- A better way of getting the value of parsed arguments.

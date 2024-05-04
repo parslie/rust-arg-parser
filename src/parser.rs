@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{any::TypeId, collections::HashMap};
 
 use self::validation::{validate_long, validate_short};
 
@@ -11,6 +11,48 @@ pub enum ParsedArgument {
     String(String),
     Bool(bool),
     None,
+}
+
+pub struct ParseResult {
+    arguments: HashMap<String, ParsedArgument>,
+}
+
+impl ParseResult {
+    fn get_arg(&self, key: &str) -> &ParsedArgument {
+        if let Some(arg) = self.arguments.get(key) {
+            arg
+        } else {
+            panic!("Could not find value for argument '{}'", key)
+        }
+    }
+
+    pub fn get_i32(&self, key: &str) -> i32 {
+        match self.get_arg(key) {
+            ParsedArgument::Int32(value) => value.to_owned(),
+            _ => panic!("Argument '{}' is not an signed, 32-bit int", key),
+        }
+    }
+
+    pub fn get_f32(&self, key: &str) -> f32 {
+        match self.get_arg(key) {
+            ParsedArgument::Float32(value) => value.to_owned(),
+            _ => panic!("Argument '{}' is not an 32-bit float", key),
+        }
+    }
+
+    pub fn get_string(&self, key: &str) -> String {
+        match self.get_arg(key) {
+            ParsedArgument::String(value) => value.to_owned(),
+            _ => panic!("Argument '{}' is not a string", key),
+        }
+    }
+
+    pub fn get_bool(&self, key: &str) -> bool {
+        match self.get_arg(key) {
+            ParsedArgument::Bool(value) => value.to_owned(),
+            _ => panic!("Argument '{}' is not a bool", key),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -290,7 +332,7 @@ impl Parser {
         }
     }
 
-    pub fn parse_arguments(&self) -> HashMap<String, ParsedArgument> {
+    pub fn parse_arguments(&self) -> ParseResult {
         let mut parsed_args = HashMap::new();
         let mut raw_args = std::env::args().skip(1);
         let mut unparsed_args = self.options.clone();
@@ -365,7 +407,9 @@ impl Parser {
             };
         }
 
-        parsed_args
+        ParseResult {
+            arguments: parsed_args,
+        }
     }
 
     fn find_next_positional(&self, unparsed_args: &Vec<UnparsedArgument>) -> Result<usize, String> {
