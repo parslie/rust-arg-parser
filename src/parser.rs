@@ -21,38 +21,10 @@ impl ParseResult {
         }
     }
 
-    pub fn get_i32(&self, key: &str) -> i32 {
-        match self.get_arg(key) {
-            ParsedArgument::Int32(value) => value.to_owned(),
-            _ => panic!("Argument '{}' is not an signed, 32-bit int", key),
-        }
-    }
-
-    pub fn get_f32(&self, key: &str) -> f32 {
-        match self.get_arg(key) {
-            ParsedArgument::Float32(value) => value.to_owned(),
-            _ => panic!("Argument '{}' is not an 32-bit float", key),
-        }
-    }
-
-    pub fn get_string(&self, key: &str) -> String {
-        match self.get_arg(key) {
-            ParsedArgument::String(value) => value.to_owned(),
-            _ => panic!("Argument '{}' is not a string", key),
-        }
-    }
-
-    pub fn get_bool(&self, key: &str) -> bool {
-        match self.get_arg(key) {
-            ParsedArgument::Bool(value) => value.to_owned(),
-            _ => panic!("Argument '{}' is not a bool", key),
-        }
-    }
-
-    pub fn get_path(&self, key: &str) -> PathBuf {
-        match self.get_arg(key) {
-            ParsedArgument::Path(value) => value.to_owned(),
-            _ => panic!("Argument '{}' is not a path", key),
+    pub unsafe fn get<T: Clone>(&self, key: &str) -> T {
+        match self.arguments.get(key) {
+            Some(arg) => unsafe { arg.value::<T>() },
+            None => panic!("Could not find value for argument '{}'", key),
         }
     }
 

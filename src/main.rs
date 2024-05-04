@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, io::Read, process::exit};
+use std::{fs::OpenOptions, io::Read, path::PathBuf, process::exit};
 
 use parser::{
     argument::{DataType, Optionality},
@@ -17,7 +17,7 @@ fn main() {
     let parser = create_parser();
     let args = parser.parse_arguments();
 
-    let path = args.get_path("path");
+    let path: PathBuf = unsafe { args.get("path") };
 
     match OpenOptions::new().read(true).open(path) {
         Ok(mut file) => {
