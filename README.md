@@ -1,6 +1,6 @@
 # Currently Unnamed Argument Parser
-I've used a few argument parsing libraries for my projects, such as argparse and click for Python, clap for Rust, and CLI11 for C++. 
-Some have been easy to use and some have been hard to use. 
+I've used a few argument parsing libraries for my projects, such as argparse and click for Python, clap for Rust, and CLI11 for C++.
+Some have been easy to use and some have been hard to use.
 So I wanted to take my own stab at it to see if I can make one that is at least moderately easy to use.
 
 ## Example Program
@@ -29,7 +29,7 @@ fn process_args(args: HashMap<String, ParsedArgument>) -> (String, bool) {
 fn main() {
   let parser = create_parser();
   let unprocessed_args = parser.parse_arguments();
-  let path, verbose = process_args(args);
+  let (path, verbose) = process_args(args);
   // TODO: do stuff here...
 }
 ```
