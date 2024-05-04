@@ -1,43 +1,42 @@
-use parser::{DataType, Optionality, Parser};
+use std::{fs::OpenOptions, io::Read, path::PathBuf, process::exit};
+
+use parser::{DataType, Optionality, ParsedArgument, Parser};
 
 mod parser;
 
-fn main() {
+fn create_parser() -> Parser {
     let mut parser = Parser::new();
+    parser.add_positional("path", DataType::String, Optionality::Required);
+    parser
+}
 
-    parser.add_positional("req_pos", DataType::String, Optionality::Required);
-    parser.add_positional("opt_pos", DataType::Int32, Optionality::Optional);
-    parser.add_positional(
-        "def_pos",
-        DataType::Float32,
-        Optionality::Default("3.1415".to_string()),
-    );
+fn main() {
+    let parser = create_parser();
+    let args = parser.parse_arguments();
 
-    parser.add_option(
-        "req_opt",
-        DataType::Float32,
-        Some("a"),
-        None,
-        Optionality::Required,
-    );
-    parser.add_option(
-        "opt_opt",
-        DataType::Int32,
-        Some("s"),
-        Some("sad"),
-        Optionality::Optional,
-    );
-    parser.add_option(
-        "def_opt",
-        DataType::String,
-        None,
-        Some("das"),
-        Optionality::Default("default_opt".to_string()),
-    );
+    let path = if let ParsedArgument::String(path_str) = &args["path"] {
+        PathBuf::from(path_str)
+    } else {
+        panic!("should be unreachable")
+    };
 
-    parser.add_flag("set_false_flag", Some("q"), None, true);
-    parser.add_flag("set_true_flag", None, Some("qwerty"), false);
-
-    let parse_result = parser.parse_arguments();
-    println!("{:?}", parse_result);
+    match OpenOptions::new().read(true).open(path) {
+        Ok(mut file) => {
+            let mut file_contents = String::new();
+            match file.read_to_string(&mut file_contents) {
+                Ok(_) => {
+                    println!("{}", file_contents);
+                    exit(0);
+                }
+                Err(err) => {
+                    println!("{}", err.to_string());
+                    exit(1);
+                }
+            }
+        }
+        Err(err) => {
+            println!("{}", err.to_string());
+            exit(1);
+        }
+    }
 }
