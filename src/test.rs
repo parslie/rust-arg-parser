@@ -1,3 +1,5 @@
+use std::panic;
+
 use crate::{
     unparsed::{DataType, Optionality},
     Parser,
@@ -35,6 +37,12 @@ const DEF_OPTIONS: [(&str, &str, DataType, &str); 2] = [
     ("def_opt_1", "-d,--defopt1", DataType::Bool, "true"),
     ("def_opt_2", "--defopt2", DataType::Int32, "-4"),
 ];
+
+const VALID_STRING: &str = "valid string";
+const VALID_INT32: &str = "69";
+const VALID_FLOAT32: &str = "42.0";
+const VALID_BOOL: &str = "true";
+const VALID_PATH: &str = "textfile.txt";
 
 fn create_parser() -> Parser {
     let mut parser = Parser::new(PARSER_NAME, PARSER_DESC);
@@ -76,8 +84,10 @@ fn create_parser() -> Parser {
 }
 
 #[test]
-fn test_create_parser() {
-    let parser = create_parser();
+fn create_valid_parser() {
+    let parser = panic::catch_unwind(|| create_parser());
+    assert!(parser.is_ok());
+    let parser = parser.unwrap();
 
     assert_eq!(parser.name.as_str(), PARSER_NAME);
     assert_eq!(parser.description.as_str(), PARSER_DESC);
@@ -91,4 +101,64 @@ fn test_create_parser() {
         parser.options.len(),
         REQ_OPTIONS.len() + OPT_OPTIONS.len() + DEF_OPTIONS.len()
     );
+}
+
+#[test]
+fn parse_valid_args() {
+    let parser = panic::catch_unwind(|| create_parser());
+    assert!(parser.is_ok());
+    let parser = parser.unwrap();
+
+    let mut args = Vec::new();
+    for (_dest, data_type) in REQ_POSITIONALS {
+        let arg = match data_type {
+            DataType::Int32 => VALID_INT32,
+            DataType::Float32 => VALID_FLOAT32,
+            DataType::String => VALID_STRING,
+            DataType::Bool => VALID_BOOL,
+            DataType::Path => VALID_PATH,
+        };
+        args.push(arg.to_string());
+    }
+    for (_dest, name, data_type) in REQ_OPTIONS {
+        let arg = match data_type {
+            DataType::Int32 => VALID_INT32,
+            DataType::Float32 => VALID_FLOAT32,
+            DataType::String => VALID_STRING,
+            DataType::Bool => VALID_BOOL,
+            DataType::Path => VALID_PATH,
+        };
+        let name = name.split(',').next().unwrap();
+        args.push(name.to_string());
+        if data_type != DataType::Bool {
+            args.push(arg.to_string());
+        }
+    }
+
+    let parse_result = parser.parse_args_inner(args);
+    assert!(parse_result.errors.is_empty());
+
+    for (dest, _data_type) in REQ_POSITIONALS {
+        // TODO: could test values are as they should be
+        assert!(parse_result.has(dest));
+    }
+    for (dest, _data_type) in OPT_POSITIONALS {
+        assert!(!parse_result.has(dest));
+    }
+    for (dest, _data_type, _value) in DEF_POSITIONALS {
+        // TODO: could test values are as they should be
+        assert!(parse_result.has(dest));
+    }
+
+    for (dest, _name, _data_type) in REQ_OPTIONS {
+        // TODO: could test values are as they should be
+        assert!(parse_result.has(dest));
+    }
+    for (dest, _name, _data_type) in OPT_OPTIONS {
+        assert!(!parse_result.has(dest));
+    }
+    for (dest, _name, _data_type, _value) in DEF_OPTIONS {
+        // TODO: could test values are as they should be
+        assert!(parse_result.has(dest));
+    }
 }

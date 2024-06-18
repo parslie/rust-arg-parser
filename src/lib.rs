@@ -11,6 +11,7 @@ mod test;
 
 pub struct ParseResult {
     arguments: HashMap<String, ParsedArgument>,
+    errors: Vec<String>,
 }
 
 impl ParseResult {
@@ -48,8 +49,16 @@ impl Parser {
         // Short and long name validation doesn't need to be done here
         // since it's done before creating the arg
 
+        // TODO: should positionals be able to be optional or default?
+        //       if not, remember to remove from tests
+
         if let Optionality::Default(value) = &arg.optionality {
-            // TODO: validate default values
+            if let Err(_) = arg.parse_value(value.as_str()) {
+                panic!(
+                    "Default value of argument with dest '{}' is invalid!",
+                    &arg.dest
+                );
+            }
         }
 
         for existing_args in [&self.positionals, &self.options] {
@@ -118,5 +127,119 @@ impl Parser {
         };
         self.validate_new_arg(&arg);
         self.options.push(arg);
+    }
+
+    pub fn parse_args(self) -> ParseResult {
+        let args: Vec<String> = std::env::args().skip(1).collect();
+        let parse_result = self.parse_args_inner(args);
+
+        // TODO: if help option has been provided print help screen then exit
+
+        if !parse_result.errors.is_empty() {
+            // TODO: print help page
+            std::process::exit(1);
+        }
+
+        parse_result
+    }
+
+    fn parse_args_inner(self, args: Vec<String>) -> ParseResult {
+        let mut parsed_args = HashMap::new();
+        let mut parse_errors = Vec::new();
+
+        let mut positionals = self.positionals.clone();
+        let mut options = self.options.clone();
+
+        let mut raw_args = args.into_iter();
+        while let Some(raw_arg) = raw_args.next() {
+            let is_option = raw_arg.starts_with('-');
+
+            let unparsed_arg = if is_option {
+                let option_pred = |o: &UnparsedArgument| {
+                    if raw_arg.starts_with("--") {
+                        let target_long = (&raw_arg[2..]).to_string();
+                        o.long == Some(target_long)
+                    } else {
+                        let target_short = (&raw_arg[1..]).to_string();
+                        o.short == Some(target_short)
+                    }
+                };
+
+                let option_idx = match options.iter().position(option_pred) {
+                    Some(idx) => idx,
+                    None => {
+                        // TODO: add error about unrecognized option
+                        break;
+                    }
+                };
+
+                options.remove(option_idx)
+            } else {
+                if positionals.len() > 0 {
+                    positionals.remove(0)
+                } else {
+                    // TODO: add error about exhausted positionals
+                    continue; // Continues so more errors can be discovered
+                }
+            };
+
+            let value = if is_option {
+                // TODO: implement for flags
+                match raw_args.next() {
+                    Some(next_raw_arg) => next_raw_arg,
+                    None => {
+                        // TODO: add error about no value provided for option
+                        break; // Breaks because there are no arguments left
+                    }
+                }
+            } else {
+                raw_arg
+            };
+
+            let parsed_arg = match unparsed_arg.parse_value(&value) {
+                Ok(value) => value,
+                Err(_) => {
+                    // TODO: add error about invalid value
+                    continue; // Continues so more errors can be discovered
+                }
+            };
+            parsed_args.insert(unparsed_arg.dest.clone(), parsed_arg);
+        }
+
+        // TODO: remove if default/optional positionals should be disallowed
+        let positional_range = (0..positionals.len()).rev();
+        for positional_idx in positional_range {
+            let positional = &positionals[positional_idx];
+            if let Optionality::Optional = &positional.optionality {
+                positionals.remove(positional_idx);
+            } else if let Optionality::Default(value) = &positional.optionality {
+                let parsed_arg = positional
+                    .parse_value(value.as_str())
+                    .expect("validation makes sure default is valid");
+                parsed_args.insert(positional.dest.clone(), parsed_arg);
+                positionals.remove(positional_idx);
+            }
+        }
+
+        let option_range = (0..options.len()).rev();
+        for option_idx in option_range {
+            let option = &options[option_idx];
+            if let Optionality::Optional = &option.optionality {
+                options.remove(option_idx);
+            } else if let Optionality::Default(value) = &option.optionality {
+                let parsed_arg = option
+                    .parse_value(value.as_str())
+                    .expect("validation makes sure default is valid");
+                parsed_args.insert(option.dest.clone(), parsed_arg);
+                options.remove(option_idx);
+            }
+        }
+
+        // TODO: if there are any required left, set error
+
+        ParseResult {
+            arguments: parsed_args,
+            errors: parse_errors,
+        }
     }
 }

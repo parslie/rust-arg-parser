@@ -1,3 +1,7 @@
+use std::{path::PathBuf, str::FromStr};
+
+use crate::parsed::ParsedArgument;
+
 #[derive(Debug, Clone)]
 pub enum Optionality {
     Required,
@@ -37,6 +41,28 @@ impl UnparsedArgument {
         } else {
             let long = self.long.as_ref().unwrap();
             format!("--{}", long)
+        }
+    }
+
+    pub fn parse_value(&self, value: &str) -> Result<ParsedArgument, String> {
+        match self.data_type {
+            DataType::Int32 => match value.parse::<i32>() {
+                Ok(value) => Ok(ParsedArgument::Int32(value)),
+                Err(_) => Err(format!("'{}' is not a 32-bit integer", value)),
+            },
+            DataType::Float32 => match value.parse::<f32>() {
+                Ok(value) => Ok(ParsedArgument::Float32(value)),
+                Err(_) => Err(format!("'{}' is not a 32-bit float", value)),
+            },
+            DataType::String => Ok(ParsedArgument::String(value.to_string())),
+            DataType::Bool => match value.parse::<bool>() {
+                Ok(value) => Ok(ParsedArgument::Bool(value)),
+                Err(_) => Err(format!("'{}' is not a boolean", value)),
+            },
+            DataType::Path => match PathBuf::from_str(value) {
+                Ok(value) => Ok(ParsedArgument::Path(value)),
+                Err(_) => Err(format!("'{}' is not a path", value)),
+            },
         }
     }
 }
