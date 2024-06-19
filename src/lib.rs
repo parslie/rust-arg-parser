@@ -1,10 +1,12 @@
 use parsed::ParsedArgument;
 use regex::Regex;
 use std::collections::HashMap;
-use unparsed::{DataType, Optionality, UnparsedArgument};
+use unparsed::UnparsedArgument;
+pub use unparsed::{DataType, Optionality};
 
 mod error;
 mod parsed;
+pub mod prelude;
 mod unparsed;
 
 #[cfg(test)]
