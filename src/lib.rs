@@ -3,6 +3,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use unparsed::{DataType, Optionality, UnparsedArgument};
 
+mod error;
 mod parsed;
 mod unparsed;
 
@@ -51,6 +52,8 @@ impl Parser {
 
         // TODO: should positionals be able to be optional or default?
         //       if not, remember to remove from tests
+
+        // TODO: boolean options must have a default
 
         if let Optionality::Default(value) = &arg.optionality {
             if let Err(_) = arg.parse_value(value.as_str()) {
@@ -168,8 +171,8 @@ impl Parser {
                 let option_idx = match options.iter().position(option_pred) {
                     Some(idx) => idx,
                     None => {
-                        // TODO: add error about unrecognized option
-                        break;
+                        parse_errors.push(error::unrecognized_option(&raw_arg));
+                        continue; // Continues so more errors can be discovered
                     }
                 };
 
@@ -178,19 +181,26 @@ impl Parser {
                 if positionals.len() > 0 {
                     positionals.remove(0)
                 } else {
-                    // TODO: add error about exhausted positionals
+                    parse_errors.push(error::unrecognized_positional(&raw_arg));
                     continue; // Continues so more errors can be discovered
                 }
             };
 
             let value = if is_option {
-                // TODO: implement for flags
-                match raw_args.next() {
-                    Some(next_raw_arg) => next_raw_arg,
-                    None => {
-                        // TODO: add error about no value provided for option
-                        break; // Breaks because there are no arguments left
+                let is_flag = unparsed_arg.data_type == DataType::Bool;
+
+                if is_flag {
+                    // Validation makes sure that boolean options must have a default
+                    let default_value = unsafe { unparsed_arg.get_default() };
+                    match default_value.as_str() {
+                        "true" => "false".to_string(),
+                        _ => "true".to_string(),
                     }
+                } else if let Some(next_raw_arg) = raw_args.next() {
+                    next_raw_arg
+                } else {
+                    parse_errors.push(error::no_value_provided(&unparsed_arg));
+                    break; // Breaks because there are no arguments left
                 }
             } else {
                 raw_arg
@@ -199,7 +209,7 @@ impl Parser {
             let parsed_arg = match unparsed_arg.parse_value(&value) {
                 Ok(value) => value,
                 Err(_) => {
-                    // TODO: add error about invalid value
+                    parse_errors.push(error::invalid_value(&unparsed_arg, &value));
                     continue; // Continues so more errors can be discovered
                 }
             };
@@ -207,6 +217,7 @@ impl Parser {
         }
 
         // TODO: remove if default/optional positionals should be disallowed
+        // Remove optional positionals & set default values
         let positional_range = (0..positionals.len()).rev();
         for positional_idx in positional_range {
             let positional = &positionals[positional_idx];
@@ -221,6 +232,7 @@ impl Parser {
             }
         }
 
+        // Remove optional options & set default values
         let option_range = (0..options.len()).rev();
         for option_idx in option_range {
             let option = &options[option_idx];
@@ -235,7 +247,12 @@ impl Parser {
             }
         }
 
-        // TODO: if there are any required left, set error
+        if !positionals.is_empty() {
+            parse_errors.push(error::REQUIRED_POSITIONALS.to_string());
+        }
+        if !options.is_empty() {
+            parse_errors.push(error::REQUIRED_OPTIONS.to_string());
+        }
 
         ParseResult {
             arguments: parsed_args,

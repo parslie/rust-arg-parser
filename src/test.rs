@@ -38,11 +38,22 @@ const DEF_OPTIONS: [(&str, &str, DataType, &str); 2] = [
     ("def_opt_2", "--defopt2", DataType::Int32, "-4"),
 ];
 
+const FLAGS: [(&str, &str, &str); 2] = [
+    ("flag_1", "-f,--flag1", "true"),
+    ("flag_2", "--flag2", "false"),
+];
+
 const VALID_STRING: &str = "valid string";
 const VALID_INT32: &str = "69";
 const VALID_FLOAT32: &str = "42.0";
 const VALID_BOOL: &str = "true";
 const VALID_PATH: &str = "textfile.txt";
+
+const INVALID_STRING: &str = "too lazy to look up how to make an invalid string";
+const INVALID_INT32: &str = "asdf";
+const INVALID_FLOAT32: &str = "asdf";
+const INVALID_BOOL: &str = "blorf";
+const INVALID_PATH: &str = "!\"#¤%&/()=?`@£$€{[]}\\´+¨^~'*-_.:,;<>|§½\n.txt";
 
 fn create_parser() -> Parser {
     let mut parser = Parser::new(PARSER_NAME, PARSER_DESC);
@@ -80,6 +91,15 @@ fn create_parser() -> Parser {
         );
     }
 
+    for (dest, name, default_value) in FLAGS {
+        parser.add_option(
+            dest,
+            name,
+            DataType::Bool,
+            Optionality::Default(default_value.to_string()),
+        );
+    }
+
     parser
 }
 
@@ -99,7 +119,7 @@ fn create_valid_parser() {
 
     assert_eq!(
         parser.options.len(),
-        REQ_OPTIONS.len() + OPT_OPTIONS.len() + DEF_OPTIONS.len()
+        REQ_OPTIONS.len() + OPT_OPTIONS.len() + DEF_OPTIONS.len() + FLAGS.len()
     );
 }
 
@@ -134,6 +154,8 @@ fn parse_valid_args() {
             args.push(arg.to_string());
         }
     }
+    let flag_name = FLAGS[0].1.split(',').next().unwrap();
+    args.push(flag_name.to_string()); // Only adding one to test defaulting with other
 
     let parse_result = parser.parse_args_inner(args);
     assert!(parse_result.errors.is_empty());
@@ -161,4 +183,45 @@ fn parse_valid_args() {
         // TODO: could test values are as they should be
         assert!(parse_result.has(dest));
     }
+
+    for (dest, _name, _default_value) in FLAGS {
+        // TODO: could test values are as they should be
+        assert!(parse_result.has(dest));
+    }
+}
+
+#[test]
+fn parse_invalid_args() {
+    let parser = panic::catch_unwind(|| create_parser());
+    assert!(parser.is_ok());
+    let parser = parser.unwrap();
+
+    let mut args = Vec::new();
+    for (_dest, data_type) in REQ_POSITIONALS {
+        let arg = match data_type {
+            DataType::Int32 => INVALID_INT32,
+            DataType::Float32 => INVALID_FLOAT32,
+            DataType::String => INVALID_STRING,
+            DataType::Bool => INVALID_BOOL,
+            DataType::Path => INVALID_PATH,
+        };
+        args.push(arg.to_string());
+    }
+    for (_dest, name, data_type) in REQ_OPTIONS {
+        let arg = match data_type {
+            DataType::Int32 => INVALID_INT32,
+            DataType::Float32 => INVALID_FLOAT32,
+            DataType::String => INVALID_STRING,
+            DataType::Bool => INVALID_BOOL,
+            DataType::Path => INVALID_PATH,
+        };
+        let name = name.split(',').next().unwrap();
+        args.push(name.to_string());
+        if data_type != DataType::Bool {
+            args.push(arg.to_string());
+        }
+    }
+
+    let parse_result = parser.parse_args_inner(args);
+    assert!(!parse_result.errors.is_empty());
 }

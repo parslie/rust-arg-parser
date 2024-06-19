@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{fs::OpenOptions, path::PathBuf, str::FromStr};
 
 use crate::parsed::ParsedArgument;
 
@@ -60,9 +60,22 @@ impl UnparsedArgument {
                 Err(_) => Err(format!("'{}' is not a boolean", value)),
             },
             DataType::Path => match PathBuf::from_str(value) {
+                // TODO: further validation needed here to make sure it is correct
                 Ok(value) => Ok(ParsedArgument::Path(value)),
                 Err(_) => Err(format!("'{}' is not a path", value)),
             },
+        }
+    }
+
+    pub fn is_option(&self) -> bool {
+        self.short.is_some() || self.long.is_some()
+    }
+
+    pub unsafe fn get_default(&self) -> String {
+        if let Optionality::Default(value) = &self.optionality {
+            value.clone()
+        } else {
+            panic!("No default value for argument '{}'", self.get_name());
         }
     }
 }
