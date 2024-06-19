@@ -12,6 +12,7 @@ mod unparsed;
 #[cfg(test)]
 mod test;
 
+#[derive(Debug)]
 pub struct ParseResult {
     arguments: HashMap<String, ParsedArgument>,
     errors: Vec<String>,
