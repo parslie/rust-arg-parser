@@ -28,6 +28,7 @@ pub enum DataType {
 
 #[derive(Debug, Clone)]
 pub struct UnparsedArgument {
+    pub description: String,
     pub destination: String,
     pub data_type: DataType,
     pub short_name: Option<String>,

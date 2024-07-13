@@ -6,6 +6,7 @@ use super::{DataType, Optionality, UnparsedArgument};
 
 pub struct UnparsedArgumentBuilder<'a> {
     parser: &'a mut Parser,
+    description: String,
     destination: String,
     data_type: DataType,
     short_name: Option<String>,
@@ -19,6 +20,7 @@ impl<'a> UnparsedArgumentBuilder<'a> {
     pub fn new(destination: &str, data_type: DataType, parser: &'a mut Parser) -> Self {
         Self {
             parser,
+            description: String::new(),
             destination: destination.to_string(),
             data_type,
             short_name: None,
@@ -31,6 +33,11 @@ impl<'a> UnparsedArgumentBuilder<'a> {
 
     pub(crate) fn is_help_flag(mut self, value: bool) -> Self {
         self.is_help_flag = value;
+        self
+    }
+
+    pub fn description(mut self, description: &str) -> Self {
+        self.description = description.to_string();
         self
     }
 
@@ -82,6 +89,7 @@ impl<'a> UnparsedArgumentBuilder<'a> {
         }
 
         let argument = UnparsedArgument {
+            description: self.description,
             destination: self.destination,
             data_type: self.data_type,
             short_name: None,
@@ -152,6 +160,7 @@ impl<'a> UnparsedArgumentBuilder<'a> {
         }
 
         let argument = UnparsedArgument {
+            description: self.description,
             destination: self.destination,
             data_type: self.data_type,
             short_name: self.short_name,
@@ -212,6 +221,7 @@ impl<'a> UnparsedArgumentBuilder<'a> {
         }
 
         let argument = UnparsedArgument {
+            description: self.description,
             destination: self.destination,
             data_type: self.data_type,
             short_name: self.short_name,

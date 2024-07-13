@@ -171,18 +171,6 @@ impl Parser {
     pub fn print_help_page(&self) {
         const TAB: &str = "   ";
 
-        /*
-        Usage: name [OPTIONS] [POSITIONALS]
-
-        description
-
-        Positionals:
-            [DEST] - [DESCRIPTION]
-
-        Options:
-            [NAME] - [DESCRIPTION]
-        */
-
         let mut usage_str = format!("Usage: {}", &self.name);
         if !self.options.is_empty() {
             usage_str.push_str(" [OPTION]...");
@@ -202,7 +190,7 @@ impl Parser {
 
             for positional in &self.positionals {
                 let name = positional.get_name();
-                let desc = "TODO: DESCRIPTIONS".to_string();
+                let desc = positional.description.to_string();
                 if name.len() > name_len {
                     name_len = name.len();
                 }
@@ -212,10 +200,13 @@ impl Parser {
             println!("\nPositionals:");
             for (name, description) in name_desc_tuples {
                 print!("{}{}", TAB, &name);
-                for _ in 0..(name_len - name.len()) {
-                    print!(" ");
+                if !description.is_empty() {
+                    for _ in 0..(name_len - name.len()) {
+                        print!(" ");
+                    }
+                    print!(" - {}", &description);
                 }
-                println!(" - {}", &description);
+                println!();
             }
         }
 
@@ -231,7 +222,7 @@ impl Parser {
 
             for option in options {
                 let name = option.get_name();
-                let desc = "TODO: DESCRIPTIONS".to_string();
+                let desc = option.description.to_string();
                 if name.len() > name_len {
                     name_len = name.len();
                 }
@@ -241,10 +232,13 @@ impl Parser {
             println!("\nOptions:");
             for (name, description) in name_desc_tuples {
                 print!("{}{}", TAB, &name);
-                for _ in 0..(name_len - name.len()) {
-                    print!(" ");
+                if !description.is_empty() {
+                    for _ in 0..(name_len - name.len()) {
+                        print!(" ");
+                    }
+                    print!(" - {}", &description);
                 }
-                println!(" - {}", &description);
+                println!();
             }
         }
     }
