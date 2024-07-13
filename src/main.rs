@@ -1,7 +1,10 @@
 use argument_parser::{unparsed::DataType, Parser};
 
 fn create_parser() -> Parser {
-    let mut parser = Parser::new("name", "description");
+    let mut parser = Parser::new("prog_name", "this is the prog description");
+
+    // Help flag
+    parser.help_flag().short_name("h").long_name("help").build();
 
     // Positionals
     parser.argument("pos_float", DataType::Float32).build();
@@ -23,7 +26,6 @@ fn create_parser() -> Parser {
 
 fn main() {
     let parser = create_parser();
-    println!("Parser:\n{:?}", parser);
     let parse_result = parser.parse_args();
     println!("Parse results:\n{:?}", parse_result);
 }

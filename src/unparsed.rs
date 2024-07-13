@@ -38,7 +38,7 @@ pub struct UnparsedArgument {
 impl UnparsedArgument {
     pub fn get_name(&self) -> String {
         if self.short_name.is_none() && self.long_name.is_none() {
-            self.destination.clone()
+            self.destination.to_uppercase()
         } else if self.short_name.is_some() && self.long_name.is_some() {
             let short = self.short_name.as_ref().unwrap();
             let long = self.long_name.as_ref().unwrap();

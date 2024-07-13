@@ -12,6 +12,7 @@ pub struct UnparsedArgumentBuilder<'a> {
     long_name: Option<String>,
     required: Option<bool>,
     default: Option<String>,
+    is_help_flag: bool,
 }
 
 impl<'a> UnparsedArgumentBuilder<'a> {
@@ -24,7 +25,13 @@ impl<'a> UnparsedArgumentBuilder<'a> {
             long_name: None,
             required: None,
             default: None,
+            is_help_flag: false,
         }
+    }
+
+    pub(crate) fn is_help_flag(mut self, value: bool) -> Self {
+        self.is_help_flag = value;
+        self
     }
 
     pub fn short_name(mut self, short_name: &str) -> Self {
@@ -120,10 +127,6 @@ impl<'a> UnparsedArgumentBuilder<'a> {
             }
         }
 
-        if self.data_type == DataType::Bool && !optionality.is_default() {
-            panic!("Bool options must have a default value.");
-        }
-
         for positional in &self.parser.positionals {
             if positional.destination == self.destination {
                 panic!(
@@ -158,9 +161,71 @@ impl<'a> UnparsedArgumentBuilder<'a> {
         self.parser.options.push(argument);
     }
 
+    fn build_help_flag(self) {
+        if let Some(true) = self.required {
+            panic!("Help flag must not be required.");
+        }
+
+        let optionality = match self.default.as_deref() {
+            Some("false") => Optionality::Default("false".to_string()),
+            _ => panic!("Help flag must be false by default"),
+        };
+
+        if let Some(short_name) = &self.short_name {
+            let regex = Regex::new(r"^[A-Za-z0-9]$").unwrap();
+            if !regex.is_match(short_name.as_bytes()) {
+                panic!("Help flag short name must consist of a single alphanumerical character.");
+            }
+        }
+
+        if let Some(long_name) = &self.long_name {
+            let regex = Regex::new(r"^[A-Za-z0-9][A-Za-z0-9\-]*$").unwrap();
+            if !regex.is_match(long_name.as_bytes()) {
+                panic!(
+                    "Help flag long name must consist of only alphanumerical characters and hyphens (and start with an alphanumerical)."
+                );
+            }
+        }
+
+        for positional in &self.parser.positionals {
+            if positional.destination == self.destination {
+                panic!(
+                    "Argument with destination '{}' already exists.",
+                    &self.destination
+                );
+            }
+        }
+
+        for option in &self.parser.options {
+            if option.destination == self.destination {
+                panic!(
+                    "Argument with destination '{}' already exists.",
+                    &self.destination
+                );
+            } else if self.short_name.is_some() && option.short_name == self.short_name {
+                let short_name = self.short_name.unwrap();
+                panic!("Option with short name '-{}' already exists.", &short_name);
+            } else if self.long_name.is_some() && option.long_name == self.long_name {
+                let long_name = self.long_name.unwrap();
+                panic!("Option with long name '--{}' already exists.", &long_name);
+            }
+        }
+
+        let argument = UnparsedArgument {
+            destination: self.destination,
+            data_type: self.data_type,
+            short_name: self.short_name,
+            long_name: self.long_name,
+            optionality,
+        };
+        self.parser.help_arg = Some(argument);
+    }
+
     pub fn build(self) {
-        let is_option = self.short_name.is_some() || self.long_name.is_some();
-        if is_option {
+        let is_option = self.short_name.is_some() || self.long_name.is_some() || self.is_help_flag;
+        if self.is_help_flag {
+            self.build_help_flag();
+        } else if is_option {
             self.build_option();
         } else {
             self.build_positional();
