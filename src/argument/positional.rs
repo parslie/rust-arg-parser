@@ -1,0 +1,66 @@
+use crate::Parser;
+
+use super::DataType;
+
+#[derive(Debug)]
+pub struct PositionalArgument {
+    destination: String,
+    data_type: DataType,
+    is_required: Option<bool>,
+    defaults: Vec<String>,
+}
+
+impl PositionalArgument {
+    pub(crate) fn new(parser: &Parser, destination: &str, data_type: DataType) -> Self {
+        for positional in &parser.positionals {
+            if destination == positional.destination.as_str() {
+                panic!(
+                    "destination '{}' is occupied by another positional",
+                    destination
+                );
+            }
+        }
+
+        if let Some(prev_positional) = parser.positionals.last() {
+            let prev_is_array = prev_positional.data_type.is_array();
+            let prev_is_optional = prev_positional.is_required == Some(false)
+                || (prev_positional.is_required == None && !prev_positional.defaults.is_empty());
+
+            if prev_is_optional {
+                panic!("only the last positional can be optional");
+            } else if prev_is_array {
+                panic!("only the last positional can be an array");
+            }
+        }
+
+        Self {
+            destination: destination.to_string(),
+            data_type,
+            is_required: None,
+            defaults: Vec::new(),
+        }
+    }
+
+    pub fn is_required(&mut self, is_required: bool) -> &mut Self {
+        if is_required && !self.defaults.is_empty() {
+            panic!(
+                "positional '{}' cannot be required and have a default value simultaneously",
+                &self.destination
+            );
+        }
+        self.is_required = Some(is_required);
+        self
+    }
+
+    pub fn defaults(&mut self, defaults: &[&str]) -> &mut Self {
+        if self.is_required == Some(true) {
+            panic!(
+                "positional '{}' cannot be required and have a default value simultaneously",
+                &self.destination
+            );
+        }
+        // TODO: try parse default value when parsing is implemented
+        self.defaults = defaults.iter().map(|default| default.to_string()).collect();
+        self
+    }
+}
