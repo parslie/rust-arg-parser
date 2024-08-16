@@ -1,6 +1,6 @@
 pub mod positional;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum DataType {
     Int32(bool),
     Float32(bool),
