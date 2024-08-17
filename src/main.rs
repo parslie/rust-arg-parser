@@ -6,5 +6,6 @@ fn main() {
     parser
         .positional("a_string_array", DataType::String(true))
         .defaults(&["string_1", "string_2"]);
+    parser.option("-v", "verbose", DataType::Bool(false));
     println!("{:?}", parser);
 }

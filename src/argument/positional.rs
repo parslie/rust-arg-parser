@@ -7,10 +7,10 @@ mod test;
 
 #[derive(Debug)]
 pub struct PositionalArgument {
-    destination: String,
-    data_type: DataType,
-    is_required: Option<bool>,
-    defaults: Option<Vec<String>>,
+    pub(crate) destination: String,
+    pub(crate) data_type: DataType,
+    pub(crate) is_required: Option<bool>,
+    pub(crate) defaults: Option<Vec<String>>,
 }
 
 impl PositionalArgument {
@@ -21,6 +21,11 @@ impl PositionalArgument {
                     "destination '{}' is occupied by another positional",
                     destination
                 );
+            }
+        }
+        for option in &parser.options {
+            if destination == option.destination.as_str() {
+                panic!("destination '{}' is occupied by an option", destination);
             }
         }
 

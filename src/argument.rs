@@ -1,3 +1,4 @@
+pub mod option;
 pub mod positional;
 
 #[derive(Debug, Clone, Copy)]
