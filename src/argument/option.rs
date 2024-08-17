@@ -35,9 +35,9 @@ impl OptionArgument {
             }
         }
 
-        let both_name_re = Regex::new(r"^-[A-Za-z] *,--[A-Za-z-]+$").unwrap();
-        let short_name_re = Regex::new(r"^-[A-Za-z]$").unwrap();
-        let long_name_re = Regex::new(r"^--[A-Za-z-]+$").unwrap();
+        let both_name_re = Regex::new(r"^-[A-Za-z0-9] *,--[A-Za-z0-9-]+$").unwrap();
+        let short_name_re = Regex::new(r"^-[A-Za-z0-9]$").unwrap();
+        let long_name_re = Regex::new(r"^--[A-Za-z0-9-]+$").unwrap();
 
         let (short_name, long_name) = if both_name_re.is_match(names) {
             let (short_name, long_name) = names.split_once(',').expect("checked with regex");
@@ -54,7 +54,20 @@ impl OptionArgument {
             panic!("names of option '{}' need to be formatted like '-v', '--verbose', or '-v,--verbose'", destination);
         };
 
-        // TODO: validate short and long name
+        for option in &parser.options {
+            if short_name.is_some() && option.short_name == short_name {
+                panic!(
+                    "short name '-{}' is occupied by another option",
+                    short_name.unwrap().as_str()
+                );
+            }
+            if long_name.is_some() && option.long_name == long_name {
+                panic!(
+                    "long name '--{}' is occupied by another option",
+                    long_name.unwrap().as_str()
+                );
+            }
+        }
 
         Self {
             short_name,
