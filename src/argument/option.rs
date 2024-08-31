@@ -38,12 +38,14 @@ impl OptionArgument {
             }
         }
 
-        let both_name_re = Regex::new(r"^-[A-Za-z0-9] *,--[A-Za-z0-9-]+$").unwrap();
+        let both_name_re = Regex::new(r"^-[A-Za-z0-9] *, *--[A-Za-z0-9-]+$").unwrap();
         let short_name_re = Regex::new(r"^-[A-Za-z0-9]$").unwrap();
         let long_name_re = Regex::new(r"^--[A-Za-z0-9-]+$").unwrap();
 
         let (short_name, long_name) = if both_name_re.is_match(names) {
-            let (short_name, long_name) = names.split_once(',').expect("checked with regex");
+            let stripped_names = names.replace(" ", "");
+            let (short_name, long_name) =
+                stripped_names.split_once(',').expect("checked with regex");
             let short_name = short_name[1..].to_string();
             let long_name = long_name[2..].to_string();
             (Some(short_name), Some(long_name))
