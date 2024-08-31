@@ -4,6 +4,9 @@ use crate::Parser;
 
 use super::DataType;
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug)]
 pub struct OptionArgument {
     pub(crate) short_name: Option<String>,
