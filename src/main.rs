@@ -2,10 +2,18 @@ use argument_parser::{argument::DataType, Parser};
 
 fn main() {
     let mut parser = Parser::new();
-    parser.positional("a_float", DataType::Float32(false));
+
+    parser.positional("files", DataType::Path(true));
+
     parser
-        .positional("a_string_array", DataType::String(true))
-        .defaults(&["string_1", "string_2"]);
-    parser.option("-v", "verbose", DataType::Bool(false));
+        .option("-E, --show-ends", "show_ends", DataType::Bool(false))
+        .defaults(&["false"]);
+    parser
+        .option("-n, --number", "number", DataType::Bool(false))
+        .defaults(&["false"]);
+    parser
+        .option("-T, --show-tabs", "show_tabs", DataType::Bool(false))
+        .defaults(&["false"]);
+
     println!("{:?}", parser);
 }
