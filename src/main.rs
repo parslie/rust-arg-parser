@@ -16,4 +16,7 @@ fn main() {
         .defaults(&["false"]);
 
     println!("{:?}", parser);
+
+    let parse_result = parser.parse_args();
+    println!("{:?}", parse_result);
 }
