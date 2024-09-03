@@ -7,7 +7,7 @@ use super::DataType;
 #[cfg(test)]
 mod test;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OptionArgument {
     pub(crate) short_name: Option<String>,
     pub(crate) long_name: Option<String>,
@@ -81,6 +81,18 @@ impl OptionArgument {
             data_type,
             is_required: None,
             defaults: None,
+        }
+    }
+
+    pub(crate) fn has_name(&self, name: &str) -> bool {
+        if name.starts_with("--") {
+            let name = name[2..].to_string();
+            self.long_name == Some(name)
+        } else if name.starts_with('-') {
+            let name = name[1..].to_string();
+            self.short_name == Some(name)
+        } else {
+            false
         }
     }
 

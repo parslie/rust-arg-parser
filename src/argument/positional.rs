@@ -5,7 +5,7 @@ use super::DataType;
 #[cfg(test)]
 mod test;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PositionalArgument {
     pub(crate) destination: String,
     pub(crate) data_type: DataType,
@@ -29,7 +29,7 @@ impl PositionalArgument {
             }
         }
 
-        if let Some(prev_positional) = parser.positionals.last() {
+        if let Some(prev_positional) = parser.positionals.back() {
             let prev_is_array = prev_positional.data_type.is_array();
             let prev_is_optional = prev_positional.is_required == Some(false)
                 || (prev_positional.is_required == None && prev_positional.defaults.is_some());

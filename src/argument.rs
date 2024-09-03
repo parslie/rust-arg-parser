@@ -11,7 +11,7 @@ pub enum DataType {
 }
 
 impl DataType {
-    fn is_array(&self) -> bool {
+    pub fn is_array(&self) -> bool {
         let result = match self {
             DataType::Int32(is_array) => is_array,
             DataType::Float32(is_array) => is_array,

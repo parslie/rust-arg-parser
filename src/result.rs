@@ -1,4 +1,6 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
+
+use crate::argument::DataType;
 
 #[derive(Debug)]
 pub(crate) enum ParseValue {
@@ -7,6 +9,31 @@ pub(crate) enum ParseValue {
     String(String),
     Bool(bool),
     Path(PathBuf),
+}
+
+impl ParseValue {
+    pub(crate) fn from_value(data_type: DataType, value: &str) -> Result<Self, String> {
+        // TODO: paths could need more validation
+        match data_type {
+            DataType::Int32(_) => match value.parse::<i32>() {
+                Ok(value) => Ok(ParseValue::Int32(value)),
+                Err(_) => todo!("i32 parse error message"),
+            },
+            DataType::Float32(_) => match value.parse::<f32>() {
+                Ok(value) => Ok(ParseValue::Float32(value)),
+                Err(_) => todo!("f32 parse error message"),
+            },
+            DataType::String(_) => Ok(ParseValue::String(value.to_string())),
+            DataType::Bool(_) => match value.parse::<bool>() {
+                Ok(value) => Ok(ParseValue::Bool(value)),
+                Err(_) => todo!("bool parse error message"),
+            },
+            DataType::Path(_) => match PathBuf::from_str(value) {
+                Ok(value) => Ok(ParseValue::Path(value)),
+                Err(_) => todo!("path parse error message"),
+            },
+        }
+    }
 }
 
 #[derive(Debug)]
