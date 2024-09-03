@@ -64,7 +64,7 @@ impl Parser {
         }
     }
 
-    fn parse_option(&mut self, result: &mut ParseResult, name: &str, value: &str) {
+    fn parse_option(&mut self, result: &mut ParseResult, name: &str, raw_args: &mut Skip<Args>) {
         let mut option_idx = None;
         for (idx, option) in self.options.iter().enumerate() {
             if option.has_name(name) {
@@ -77,6 +77,28 @@ impl Parser {
             self.options.remove(option_idx)
         } else {
             todo!("error for no matching option")
+        };
+
+        // NOTE TO SELF: Boolean arrays need to have specified values
+        // since an incremental argument type is to be
+        // introduced in the future, making it so allowing them to be
+        // unspecified is practically useless.
+        let value = match option.data_type {
+            DataType::Bool(false) => match &option.defaults {
+                Some(defaults) => {
+                    // Validation in OptionArgument ensures there is one default value
+                    match unsafe { defaults.get_unchecked(0).as_str() } {
+                        "true" => "false".to_string(),
+                        "false" => "true".to_string(),
+                        _ => todo!("panic, default is invalid, this is a bug with the validation"),
+                    }
+                }
+                None => todo!("panic, theres no defaults, this is a bug with the validation"),
+            },
+            _ => match raw_args.next() {
+                Some(value) => value,
+                None => todo!("error for no value provided"),
+            },
         };
 
         let parse_value = match ParseValue::from_value(option.data_type, &value) {
@@ -103,11 +125,7 @@ impl Parser {
         while let Some(raw_arg) = raw_args.next() {
             let is_option = raw_arg.starts_with('-');
             if is_option {
-                let value = match raw_args.next() {
-                    Some(value) => value,
-                    None => todo!("error for no option value provided"),
-                };
-                self.parse_option(&mut result, &raw_arg, &value);
+                self.parse_option(&mut result, &raw_arg, &mut raw_args);
             } else {
                 self.parse_positional(&mut result, &raw_arg);
             }

@@ -17,6 +17,7 @@ pub struct OptionArgument {
     pub(crate) defaults: Option<Vec<String>>,
 }
 
+// TODO: make non-array booleans have to have a default value
 impl OptionArgument {
     pub(crate) fn new(
         parser: &Parser,
