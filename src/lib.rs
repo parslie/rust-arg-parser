@@ -131,7 +131,63 @@ impl Parser {
             }
         }
 
-        // TODO: process unparsed arguments
+        for positional in self.positionals {
+            if positional.is_required == Some(true) {
+                todo!("error for missing required positional")
+            } else if let Some(defaults) = positional.defaults {
+                if result.has_array(&positional.destination) {
+                    // Array arguments still exist in the vectors,
+                    // so they need to be skipped if they've already
+                    // been parsed.
+                    continue;
+                }
+                for default in defaults {
+                    let parse_value = match ParseValue::from_value(positional.data_type, &default) {
+                        Ok(parse_value) => parse_value,
+                        Err(_) => {
+                            todo!("panic, default is invalid, this is a bug with the validation")
+                        }
+                    };
+                    let add_result = if positional.data_type.is_array() {
+                        result.add_array_value(&positional.destination, parse_value)
+                    } else {
+                        result.add_single_value(&positional.destination, parse_value)
+                    };
+                    if let Err(_err) = add_result {
+                        todo!("error for unable to add parse value")
+                    }
+                }
+            }
+        }
+
+        for option in self.options {
+            if option.is_required == Some(true) {
+                todo!("error for missing required option")
+            } else if let Some(defaults) = option.defaults {
+                if result.has_array(&option.destination) {
+                    // Array arguments still exist in the vectors,
+                    // so they need to be skipped if they've already
+                    // been parsed.
+                    continue;
+                }
+                for default in defaults {
+                    let parse_value = match ParseValue::from_value(option.data_type, &default) {
+                        Ok(parse_value) => parse_value,
+                        Err(_) => {
+                            todo!("panic, default is invalid, this is a bug with the validation")
+                        }
+                    };
+                    let add_result = if option.data_type.is_array() {
+                        result.add_array_value(&option.destination, parse_value)
+                    } else {
+                        result.add_single_value(&option.destination, parse_value)
+                    };
+                    if let Err(_err) = add_result {
+                        todo!("error for unable to add parse value")
+                    }
+                }
+            }
+        }
 
         result
     }

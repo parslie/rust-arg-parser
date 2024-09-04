@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use argument_parser::{argument::DataType, Parser};
 
 fn main() {
@@ -19,4 +21,13 @@ fn main() {
 
     let parse_result = parser.parse_args();
     println!("{:?}", parse_result);
+
+    let file_paths = unsafe { parse_result.get_array_unchecked::<PathBuf>("files") };
+    println!("file_paths = {:?}", file_paths);
+    let show_ends = unsafe { parse_result.get_single_unchecked::<bool>("show_ends") };
+    println!("show_ends = {:?}", show_ends);
+    let number = unsafe { parse_result.get_single_unchecked::<bool>("number") };
+    println!("number = {:?}", number);
+    let show_tabs = unsafe { parse_result.get_single_unchecked::<bool>("show_tabs") };
+    println!("show_tabs = {:?}", show_tabs);
 }

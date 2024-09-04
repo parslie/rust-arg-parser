@@ -50,6 +50,14 @@ impl ParseResult {
         }
     }
 
+    pub fn has_single(&self, key: &str) -> bool {
+        self.single_values.contains_key(key)
+    }
+
+    pub fn has_array(&self, key: &str) -> bool {
+        self.array_values.contains_key(key)
+    }
+
     pub(crate) fn add_single_value(
         &mut self,
         key: &str,
