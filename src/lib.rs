@@ -10,6 +10,7 @@ use result::{ParseResult, ParseValue};
 pub mod argument;
 pub mod result;
 
+// TODO: make sure all checks of is_required and defaults are correct
 #[derive(Debug)]
 pub struct Parser {
     // Argument variables
@@ -30,10 +31,38 @@ impl Parser {
         }
     }
 
-    // TODO: add functions to add child parser
     // TODO: if positionals are exhausted, choose child parser
-    // TODO: validate that the the last positional is not optional or an array when adding a child parser
     // TODO: validate that there are no child parsers when adding an array or optional positional
+    // TODO: parse for child parsers when positionals have been exhausted
+
+    pub fn sub_parser(&mut self, name: &str) -> &mut Self {
+        if self.child_parsers.contains_key(name) {
+            panic!("a sub-parser already has the name '{}'", name);
+        } else if let Some(last_positional) = self.positionals.back() {
+            if last_positional.data_type.is_array() {
+                panic!(
+                    "a sub-parser cannot be added, since the last positional '{}' is an array",
+                    &last_positional.destination
+                );
+            } else if last_positional.is_required == Some(false)
+                || last_positional.defaults.is_some()
+            {
+                panic!(
+                    "a sub-parser cannot be added, since the last positional '{}' is optional",
+                    &last_positional.destination
+                );
+            }
+        }
+
+        let child_parser = Self {
+            positionals: VecDeque::new(),
+            options: Vec::new(),
+            parent_parser: Some(self as *const Self),
+            child_parsers: HashMap::new(),
+        };
+        self.child_parsers.insert(name.to_string(), child_parser);
+        self.child_parsers.get_mut(name).expect("was just added")
+    }
 
     pub fn positional(
         &mut self,
