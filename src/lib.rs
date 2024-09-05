@@ -1,4 +1,8 @@
-use std::{collections::VecDeque, env::Args, iter::Skip};
+use std::{
+    collections::{HashMap, VecDeque},
+    env::Args,
+    iter::Skip,
+};
 
 use argument::{option::OptionArgument, positional::PositionalArgument, DataType};
 use result::{ParseResult, ParseValue};
@@ -8,8 +12,12 @@ pub mod result;
 
 #[derive(Debug)]
 pub struct Parser {
+    // Argument variables
     positionals: VecDeque<PositionalArgument>,
     options: Vec<OptionArgument>,
+    // Sub parser variables
+    parent_parser: Option<*const Parser>,
+    child_parsers: HashMap<String, Parser>,
 }
 
 impl Parser {
@@ -17,8 +25,15 @@ impl Parser {
         Self {
             positionals: VecDeque::new(),
             options: Vec::new(),
+            parent_parser: None,
+            child_parsers: HashMap::new(),
         }
     }
+
+    // TODO: add functions to add child parser
+    // TODO: if positionals are exhausted, choose child parser
+    // TODO: validate that the the last positional is not optional or an array when adding a child parser
+    // TODO: validate that there are no child parsers when adding an array or optional positional
 
     pub fn positional(
         &mut self,
