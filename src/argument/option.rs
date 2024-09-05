@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::Parser;
+use crate::{result::ParseValue, Parser};
 
 use super::DataType;
 
@@ -121,7 +121,14 @@ impl OptionArgument {
                 &self.destination
             );
         }
-        // TODO: try parse default value when parsing is implemented
+        for default_value in defaults {
+            if let Err(err) = ParseValue::from_value(self.data_type, default_value) {
+                panic!(
+                    "option '{}' default value is invalid: {}",
+                    &self.destination, &err
+                );
+            }
+        }
         self.defaults = Some(defaults.iter().map(|default| default.to_string()).collect());
         self
     }
