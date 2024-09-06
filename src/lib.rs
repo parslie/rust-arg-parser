@@ -32,8 +32,6 @@ impl Parser {
     }
 
     // TODO: if positionals are exhausted, choose child parser
-    // TODO: validate that there are no child parsers when adding an array or optional positional
-    // TODO: parse for child parsers when positionals have been exhausted
 
     pub fn sub_parser(&mut self, name: &str) -> &mut Self {
         if self.child_parsers.contains_key(name) {

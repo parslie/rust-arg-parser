@@ -7,6 +7,7 @@ mod test;
 
 #[derive(Debug, Clone)]
 pub struct PositionalArgument {
+    pub(crate) parser: *const Parser,
     pub(crate) destination: String,
     pub(crate) data_type: DataType,
     pub(crate) is_required: Option<bool>,
@@ -29,6 +30,13 @@ impl PositionalArgument {
             }
         }
 
+        if data_type.is_array() && !parser.child_parsers.is_empty() {
+            panic!(
+                "positional array '{}' cannot be added, since a sub-parser has been added",
+                &destination
+            );
+        }
+
         if let Some(prev_positional) = parser.positionals.back() {
             let prev_is_array = prev_positional.data_type.is_array();
             let prev_is_optional = prev_positional.is_required == Some(false)
@@ -42,6 +50,7 @@ impl PositionalArgument {
         }
 
         Self {
+            parser: parser as *const Parser,
             destination: destination.to_string(),
             data_type,
             is_required: None,
@@ -50,6 +59,13 @@ impl PositionalArgument {
     }
 
     pub fn is_required(&mut self, is_required: bool) -> &mut Self {
+        let parser = unsafe { self.parser.as_ref().expect("should not be null") };
+        if !is_required && !parser.child_parsers.is_empty() {
+            panic!(
+                "optional positional '{}' cannot be added, since a sub-parser has been added",
+                &self.destination
+            );
+        }
         if is_required && self.defaults.is_some() {
             panic!(
                 "positional '{}' cannot be required and have a default value simultaneously",
