@@ -1,33 +1,27 @@
-use std::path::PathBuf;
-
-use argument_parser::{argument::DataType, Parser};
-
 fn main() {
     let mut parser = Parser::new();
+    parser.positional("output_file", DataType::Path(false));
 
-    parser.positional("files", DataType::Path(true));
+    // Echo sub parser
+    let echo_parser = parser.sub_parser("echo");
+    echo_parser
+        .positional("inputs", DataType::String(true))
+        .is_required(false);
 
-    parser
+    // Cat sub parser
+    let cat_parser = parser.sub_parser("cat");
+    cat_parser.positional("input_files", DataType::Path(true));
+    cat_parser
         .option("-E, --show-ends", "show_ends", DataType::Bool(false))
-        .defaults(&["false"]);
-    parser
+        .default_value("false"); // TODO: flag instead of option
+    cat_parser
         .option("-n, --number", "number", DataType::Bool(false))
-        .defaults(&["false"]);
-    parser
+        .default_value("false"); // TODO: flag instead of option
+    cat_parser
         .option("-T, --show-tabs", "show_tabs", DataType::Bool(false))
-        .defaults(&["false"]);
+        .default_value("false"); // TODO: flag instead of option
 
-    println!("{:?}", parser);
-
-    let parse_result = parser.parse_args();
-    println!("{:?}", parse_result);
-
-    let file_paths = unsafe { parse_result.get_array_unchecked::<PathBuf>("files") };
-    println!("file_paths = {:?}", file_paths);
-    let show_ends = unsafe { parse_result.get_single_unchecked::<bool>("show_ends") };
-    println!("show_ends = {:?}", show_ends);
-    let number = unsafe { parse_result.get_single_unchecked::<bool>("number") };
-    println!("number = {:?}", number);
-    let show_tabs = unsafe { parse_result.get_single_unchecked::<bool>("show_tabs") };
-    println!("show_tabs = {:?}", show_tabs);
+    // Print parse result
+    let parse_result = parser.parse(None);
+    println!("Parse result:\n{:?}", parse_result);
 }
