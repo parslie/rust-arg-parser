@@ -2,6 +2,10 @@ use crate::Parser;
 
 use super::DataType;
 
+fn extract_names(names: &str) -> (Option<String>, Option<String>) {
+    todo!("create function for extracting short and long names");
+}
+
 /// An argument that is parsed by inputting its name and value
 /// in successive order.
 ///
@@ -23,6 +27,7 @@ impl OptionArgument {
     /// Creates a default-configured option argument.
     ///
     /// # Panics...
+    /// - ...if the names aren't of the forms "-s", "--long-name", or "-s, --long-name".
     /// - ...if the desination is occupied.
     /// - ...if either name is occupied.
     pub(crate) fn new(
@@ -31,9 +36,36 @@ impl OptionArgument {
         destination: &str,
         data_type: DataType,
     ) -> Self {
-        todo!("create function for checking for occupied destinations");
-        todo!("create function for extracting short and long names");
-        todo!("create function for checking for occupied names");
-        todo!("return new OptionArgument");
+        if parser.is_destination_occupied(destination) {
+            panic!("the destination '{}' is already occupied", destination);
+        }
+
+        let (short_name, long_name) = match extract_names(names) {
+            (None, None) => panic!(
+                "names '{}' for argument '{}' were invalidly formatted",
+                names, destination
+            ),
+            value => value,
+        };
+
+        if let Some(short_name) = &short_name {
+            if parser.is_short_name_occupied(short_name) {
+                panic!("the short name '{}' is already occupied", short_name);
+            }
+        }
+        if let Some(long_name) = &long_name {
+            if parser.is_long_name_occupied(long_name) {
+                panic!("the long name '{}' is already occupied", long_name);
+            }
+        }
+
+        OptionArgument {
+            short_name,
+            long_name,
+            destination: destination.to_string(),
+            data_type,
+            is_required: None,
+            default_values: None,
+        }
     }
 }

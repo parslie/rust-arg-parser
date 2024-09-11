@@ -24,6 +24,76 @@ impl Parser {
         }
     }
 
+    /// Checks whether a destination is occupied by an argument
+    /// that belongs to the parser or any of its parent or child parsers.
+    fn is_destination_occupied(&self, destination: &str) -> bool {
+        for positional in &self.positionals {
+            if positional.destination.as_str() == destination {
+                return true;
+            }
+        }
+        for option in &self.options {
+            if option.destination.as_str() == destination {
+                return true;
+            }
+        }
+
+        let mut parent_parser_option = self.parent_parser;
+        while let Some(parent_parser_ptr) = parent_parser_option {
+            let parent_parser = unsafe { parent_parser_ptr.as_ref().expect("should exists") };
+            for positional in &parent_parser.positionals {
+                if positional.destination.as_str() == destination {
+                    return true;
+                }
+            }
+            for option in &parent_parser.options {
+                if option.destination.as_str() == destination {
+                    return true;
+                }
+            }
+            parent_parser_option = parent_parser.parent_parser;
+        }
+
+        let mut child_parsers: Vec<&Self> = self.child_parsers.values().collect();
+        while let Some(child_parser) = child_parsers.pop() {
+            for positional in &child_parser.positionals {
+                if positional.destination.as_str() == destination {
+                    return true;
+                }
+            }
+            for option in &child_parser.options {
+                if option.destination.as_str() == destination {
+                    return true;
+                }
+            }
+            child_parsers.extend(child_parser.child_parsers.values())
+        }
+
+        false
+    }
+
+    /// Checks whether a short name is occupied by an argument
+    /// that belongs to the parser.
+    fn is_short_name_occupied(&self, short_name: &str) -> bool {
+        for option in &self.options {
+            if option.short_name == Some(short_name.to_string()) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Checks whether a long name is occupied by an argument
+    /// that belongs to the parser.
+    fn is_long_name_occupied(&self, long_name: &str) -> bool {
+        for option in &self.options {
+            if option.long_name == Some(long_name.to_string()) {
+                return true;
+            }
+        }
+        false
+    }
+
     /// Adds a sub-parser that is parsed by inputting its name after
     /// all other arguments.
     ///

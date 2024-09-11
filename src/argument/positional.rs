@@ -25,7 +25,14 @@ impl PositionalArgument {
     /// # Panics...
     /// - ...if the desination is occupied.
     pub(crate) fn new(parser: &Parser, destination: &str, data_type: DataType) -> Self {
-        todo!("create function for checking for occupied destinations");
-        todo!("return new PositionalArgument");
+        if parser.is_destination_occupied(destination) {
+            panic!("the destination '{}' is already occupied", destination);
+        }
+        PositionalArgument {
+            destination: destination.to_string(),
+            data_type,
+            is_required: None,
+            default_values: None,
+        }
     }
 }
