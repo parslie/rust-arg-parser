@@ -146,6 +146,7 @@ impl Parser {
     /// Adds a default-configured option argument.
     ///
     /// # Panics...
+    /// - ...if the names aren't of the forms "-s", "--long-name", or "-s, --long-name".
     /// - ...if the desination is occupied.
     /// - ...if either name is occupied.
     pub fn option(
