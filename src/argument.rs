@@ -16,3 +16,16 @@ pub enum DataType {
     Bool(bool),
     Path(bool),
 }
+
+impl DataType {
+    /// Checks whether or not the data type is an array.
+    pub fn is_array(&self) -> bool {
+        match self {
+            DataType::Int32(value) => value.to_owned(),
+            DataType::Float32(value) => value.to_owned(),
+            DataType::String(value) => value.to_owned(),
+            DataType::Bool(value) => value.to_owned(),
+            DataType::Path(value) => value.to_owned(),
+        }
+    }
+}

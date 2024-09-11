@@ -1,3 +1,5 @@
+use crate::Parser;
+
 use super::DataType;
 
 /// An argument that is parsed by inputting its value in the order
@@ -11,8 +13,19 @@ use super::DataType;
 /// // the value of number_2 to 69
 /// ```
 pub struct PositionalArgument {
-    destination: String,
-    data_type: DataType,
-    is_required: Option<bool>,
-    default_values: Option<Vec<String>>,
+    pub(crate) destination: String,
+    pub(crate) data_type: DataType,
+    pub(crate) is_required: Option<bool>,
+    pub(crate) default_values: Option<Vec<String>>,
+}
+
+impl PositionalArgument {
+    /// Creates a default-configured positional argument.
+    ///
+    /// # Panics...
+    /// - ...if the desination is occupied.
+    pub(crate) fn new(parser: &Parser, destination: &str, data_type: DataType) -> Self {
+        todo!("create function for checking for occupied destinations");
+        todo!("return new PositionalArgument");
+    }
 }

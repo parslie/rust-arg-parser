@@ -1,3 +1,5 @@
+use crate::Parser;
+
 use super::DataType;
 
 /// An argument that is parsed by inputting its name and value
@@ -9,10 +11,29 @@ use super::DataType;
 /// // inputting "-n 32" sets the option's value to 32
 /// ```
 pub struct OptionArgument {
-    short_name: Option<String>,
-    long_name: Option<String>,
-    destination: String,
-    data_type: DataType,
-    is_required: Option<bool>,
-    default_values: Option<Vec<String>>,
+    pub(crate) short_name: Option<String>,
+    pub(crate) long_name: Option<String>,
+    pub(crate) destination: String,
+    pub(crate) data_type: DataType,
+    pub(crate) is_required: Option<bool>,
+    pub(crate) default_values: Option<Vec<String>>,
+}
+
+impl OptionArgument {
+    /// Creates a default-configured option argument.
+    ///
+    /// # Panics...
+    /// - ...if the desination is occupied.
+    /// - ...if either name is occupied.
+    pub(crate) fn new(
+        parser: &Parser,
+        names: &str,
+        destination: &str,
+        data_type: DataType,
+    ) -> Self {
+        todo!("create function for checking for occupied destinations");
+        todo!("create function for extracting short and long names");
+        todo!("create function for checking for occupied names");
+        todo!("return new OptionArgument");
+    }
 }
