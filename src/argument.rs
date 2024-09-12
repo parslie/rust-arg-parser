@@ -8,7 +8,7 @@ pub mod positional;
 /// let array_int32 = DataType::Int32(true);
 /// let non_array_int32 = DataType::Int32(false);
 /// ```
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum DataType {
     Int32(bool),
     Float32(bool),

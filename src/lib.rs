@@ -6,6 +6,7 @@ pub mod argument;
 
 /// A collection of arguments and sub-parsers, configured
 /// to be parsed a certain way.
+#[derive(Debug)]
 pub struct Parser {
     positionals: VecDeque<PositionalArgument>,
     options: Vec<OptionArgument>,
