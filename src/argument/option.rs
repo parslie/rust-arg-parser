@@ -1,9 +1,32 @@
+use regex::Regex;
+
 use crate::Parser;
 
 use super::DataType;
 
+/// Extracts the short and long names of an option argument.
+///
+/// Returns **(None, None)** if **names** parameter is invalidly formatted.
 fn extract_names(names: &str) -> (Option<String>, Option<String>) {
-    todo!("create function for extracting short and long names");
+    let both_name_re = Regex::new(r"^-[A-Za-z0-9] *, *--[A-Za-z0-9-]+$").unwrap();
+    let short_name_re = Regex::new(r"^-[A-Za-z0-9]$").unwrap();
+    let long_name_re = Regex::new(r"^--[A-Za-z0-9-]+$").unwrap();
+
+    if both_name_re.is_match(names) {
+        let stripped_names = names.replace(" ", "");
+        let (short_name, long_name) = stripped_names.split_once(',').expect("checked with regex");
+        let short_name = short_name[1..].to_string();
+        let long_name = long_name[2..].to_string();
+        (Some(short_name), Some(long_name))
+    } else if short_name_re.is_match(names) {
+        let short_name = names[1..].to_string();
+        (Some(short_name), None)
+    } else if long_name_re.is_match(names) {
+        let long_name = names[2..].to_string();
+        (None, Some(long_name))
+    } else {
+        (None, None)
+    }
 }
 
 /// An argument that is parsed by inputting its name and value

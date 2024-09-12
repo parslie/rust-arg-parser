@@ -16,8 +16,6 @@ fn main() {
     echo_parser
         .positional("inputs", DataType::String(true))
         .is_required(false);
-    println!("{:?}", echo_parser);
-    println!("Echo parser:\n{:?}", echo_parser);
 
     // Cat sub parser
     let cat_parser = parser.sub_parser("cat");
@@ -31,10 +29,9 @@ fn main() {
     cat_parser
         .option("-T, --show-tabs", "show_tabs", DataType::Bool(false))
         .default_value("false"); // TODO: flag instead of option
-    println!("Cat parser:\n{:?}", cat_parser);
 
     // Print parse result
-    println!("Parser:\n{:?}", parser);
+    println!("{:?}", parser);
     //let parse_result = parser.parse(None);
-    //println!("Parse result:\n{:?}", parse_result);
+    //println!("{:?}", parse_result);
 }
