@@ -108,7 +108,7 @@ impl Parser {
             panic!("a sub-parser with the name '{}' already exists", name);
         } else if let Some(last_positional) = self.positionals.back() {
             let is_optional = last_positional.is_required == Some(false)
-                || !last_positional.default_values.is_some();
+                || last_positional.default_values.is_some();
             let is_array = last_positional.data_type.is_array();
 
             if is_optional {
