@@ -1,8 +1,10 @@
 use std::collections::{HashMap, VecDeque};
 
 use argument::{option::OptionArgument, positional::PositionalArgument, DataType};
+use result::ParseResult;
 
 pub mod argument;
+pub mod result;
 
 /// A collection of arguments and sub-parsers, configured
 /// to be parsed a certain way.
@@ -25,6 +27,8 @@ impl Parser {
         }
     }
 
+    // TODO: given the newly thought-of structure for parse result
+    //       this only needs to check the current parser.
     /// Checks whether a destination is occupied by an argument
     /// that belongs to the parser or any of its parent or child parsers.
     fn is_destination_occupied(&self, destination: &str) -> bool {
@@ -159,5 +163,28 @@ impl Parser {
         let option = OptionArgument::new(self, names, destination, data_type);
         self.options.push(option);
         self.options.last_mut().expect("just added it")
+    }
+
+    /// TODO: write a good docstring for this
+    pub fn parse(&self, args: Option<Vec<String>>) -> ParseResult {
+        let args = match args {
+            Some(value) => value,
+            None => std::env::args().skip(1).collect(), // Skip cause first argument is prog name
+        };
+
+        let mut result = ParseResult::new();
+        self.parse_inner(args, &mut result);
+
+        result
+    }
+
+    /// TODO: write a good docstring for this
+    fn parse_inner(&self, args: Vec<String>, result: &mut ParseResult) {
+        let mut args = args.into_iter();
+
+        // TODO: this
+
+        // self.parse_inner(args.collect(), result);
+        // CALL THE ABOVE ON A CHILD PARSER TO PROPOGATE REST OF ARGUMENTS
     }
 }

@@ -32,6 +32,6 @@ fn main() {
 
     // Print parse result
     println!("{:?}", parser);
-    //let parse_result = parser.parse(None);
-    //println!("{:?}", parse_result);
+    let parse_result = parser.parse(None);
+    println!("{:?}", parse_result);
 }
