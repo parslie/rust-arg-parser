@@ -75,6 +75,10 @@ impl ParseResult {
         }
     }
 
+    pub(crate) fn contains_key(&self, key: &str) -> bool {
+        self.array_values.contains_key(key) || self.non_array_values.contains_key(key)
+    }
+
     /// Adds a non-array value to the result.
     ///
     /// # Errors
@@ -133,5 +137,31 @@ impl ParseResult {
     /// Adds an error to the result.
     pub(crate) fn add_error(&mut self, error: String) {
         self.errors.push(error);
+    }
+
+    /// Gets the sub-parser's name if one has been parsed.
+    pub fn get_sub_parser_name(&self) -> Option<String> {
+        self.child_result_name.clone()
+    }
+
+    /// Checks whether the result or child result contains any errors.
+    pub fn has_errors(&self) -> bool {
+        if !self.errors.is_empty() {
+            true
+        } else if let Some(child_parser) = &*self.child_result {
+            child_parser.has_errors()
+        } else {
+            false
+        }
+    }
+
+    /// Prints all errors and child parser errors on separate lines.
+    pub fn print_errors(&self) {
+        for error in &self.errors {
+            println!("ERROR: {}", &error);
+        }
+        if let Some(child_parser) = &*self.child_result {
+            child_parser.print_errors();
+        }
     }
 }

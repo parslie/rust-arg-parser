@@ -12,7 +12,7 @@ use super::DataType;
 /// // inputting "420 69" sets the value of number_1 to 420 and
 /// // the value of number_2 to 69
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PositionalArgument {
     pub(crate) destination: String,
     pub(crate) data_type: DataType,

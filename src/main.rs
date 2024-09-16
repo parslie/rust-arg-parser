@@ -1,12 +1,5 @@
 use argument_parser::{argument::DataType, Parser};
 
-/*
-Should try
-- Add positional
-- Add sub-parser
-- Change positional to be optional
-*/
-
 fn main() {
     let mut parser = Parser::new();
     parser.positional("output_file", DataType::Path(false));

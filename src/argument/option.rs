@@ -37,7 +37,7 @@ fn extract_names(names: &str) -> (Option<String>, Option<String>) {
 /// parser.option("-n", "number", DataType::Int32(false));
 /// // inputting "-n 32" sets the option's value to 32
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OptionArgument {
     pub(crate) short_name: Option<String>,
     pub(crate) long_name: Option<String>,

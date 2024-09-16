@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use argument::{option::OptionArgument, positional::PositionalArgument, DataType};
-use result::ParseResult;
+use result::{ParseResult, ParseValue};
 
 pub mod argument;
 pub mod result;
@@ -165,26 +165,243 @@ impl Parser {
         self.options.last_mut().expect("just added it")
     }
 
-    /// TODO: write a good docstring for this
+    /// Parses strings based on the parser's argument and sub-parsers.
+    ///
+    /// If None is provided the arguments that this program started with will be used (AKA argv).
     pub fn parse(&self, args: Option<Vec<String>>) -> ParseResult {
         let args = match args {
             Some(value) => value,
             None => std::env::args().skip(1).collect(), // Skip cause first argument is prog name
         };
 
-        let mut result = ParseResult::new();
-        self.parse_inner(args, &mut result);
+        let result = self.parse_inner(args);
+        if result.has_errors() {
+            result.print_errors();
+            std::process::exit(1);
+        }
 
         result
     }
 
-    /// TODO: write a good docstring for this
-    fn parse_inner(&self, args: Vec<String>, result: &mut ParseResult) {
+    /// Parses strings based on the parser's argument and sub-parsers.
+    ///
+    /// This function is only to be called by parser instances.
+    fn parse_inner(&self, args: Vec<String>) -> ParseResult {
         let mut args = args.into_iter();
+        let mut result = ParseResult::new();
+        let mut positionals = self.positionals.clone();
+        let mut options = self.options.clone();
 
-        // TODO: this
+        while let Some(arg) = args.next() {
+            let is_option = arg.starts_with('-');
+            let has_positionals = !positionals.is_empty();
+            let has_child_parsers = !self.child_parsers.is_empty();
 
-        // self.parse_inner(args.collect(), result);
-        // CALL THE ABOVE ON A CHILD PARSER TO PROPOGATE REST OF ARGUMENTS
+            // TODO: organize this after documentation is done
+            if is_option {
+                let mut option_idx = None;
+                for (idx, option) in options.iter().enumerate() {
+                    let trimmed_name = Some(arg.trim_start_matches('-'));
+                    if option.short_name.as_deref() == trimmed_name
+                        || option.long_name.as_deref() == trimmed_name
+                    {
+                        option_idx = Some(idx);
+                        break;
+                    }
+                }
+
+                let option = match option_idx {
+                    Some(option_idx) => options.remove(option_idx),
+                    None => {
+                        let error = format!("no matching option found for '{}'", &arg);
+                        result.add_error(error);
+                        continue; // Continue to find more errors
+                    }
+                };
+
+                let value = match args.next() {
+                    Some(value) => value,
+                    None => {
+                        let error = format!("no value provided for '{}'", &arg);
+                        result.add_error(error);
+                        break; // No arguments left, since we got None from args.next()
+                    }
+                };
+
+                let parse_value = match ParseValue::from_value(&value, option.data_type) {
+                    Ok(parse_value) => parse_value,
+                    Err(_) => {
+                        let error = format!("'{}' is not of the correct data type", &value);
+                        result.add_error(error);
+                        continue; // Continue to find more errors
+                    }
+                };
+
+                let add_result = if option.data_type.is_array() {
+                    result.add_array_value(&option.destination, parse_value)
+                } else {
+                    result.add_non_array_value(&option.destination, parse_value)
+                };
+
+                if let Err(_) = add_result {
+                    let error = format!(
+                        "'{}' has already been parsed (this is a bug, report if it happens)",
+                        &option.destination
+                    );
+                    result.add_error(error);
+                    continue; // Continue to find more errors
+                }
+
+                if option.data_type.is_array() {
+                    options.push(option);
+                }
+            } else if has_positionals {
+                let positional = positionals.pop_front().expect("has checked if non-empty");
+                let parse_value = match ParseValue::from_value(&arg, positional.data_type) {
+                    Ok(parse_value) => parse_value,
+                    Err(_) => {
+                        let error = format!("'{}' is not of the correct data type", &arg);
+                        result.add_error(error);
+                        continue; // Continue to find more errors
+                    }
+                };
+
+                let add_result = if positional.data_type.is_array() {
+                    result.add_array_value(&positional.destination, parse_value)
+                } else {
+                    result.add_non_array_value(&positional.destination, parse_value)
+                };
+
+                if let Err(_) = add_result {
+                    let error = format!(
+                        "'{}' has already been parsed (this is a bug, report if it happens)",
+                        &positional.destination
+                    );
+                    result.add_error(error);
+                    continue; // Continue to find more errors
+                }
+
+                if positional.data_type.is_array() {
+                    positionals.push_back(positional);
+                }
+            } else if has_child_parsers {
+                match self.child_parsers.get(&arg) {
+                    Some(child_parser) => {
+                        let args = args.collect();
+                        if let Err(_) =
+                            result.set_child_result(&arg, child_parser.parse_inner(args))
+                        {
+                            let error = format!("sub-parser '{}' doesn't exist", arg);
+                            result.add_error(error);
+                        }
+                    }
+                    None => {
+                        let error = format!("sub-parser '{}' doesn't exist", arg);
+                        result.add_error(error);
+                    }
+                }
+                break; // No arguments left, they have been propogated
+            } else {
+                let error = format!("unable to parse '{}', no positionals left", arg);
+                result.add_error(error);
+                continue; // Continue to find more errors
+            }
+        }
+
+        for positional in positionals {
+            if result.contains_key(&positional.destination) {
+                continue; // Already been parsed
+            }
+
+            if positional.is_required != Some(false) {
+                let error = format!(
+                    "no value provided for positional '{}'",
+                    &positional.destination
+                );
+                result.add_error(error);
+                continue;
+            } else if let Some(default_values) = positional.default_values {
+                for default_value in default_values {
+                    let parse_value = match ParseValue::from_value(
+                        &default_value,
+                        positional.data_type,
+                    ) {
+                        Ok(parse_value) => parse_value,
+                        Err(_) => {
+                            let error = format!(
+                                "'{}' is not of the correct data type (this is a bug, report if it happens)",
+                                &default_value
+                            );
+                            result.add_error(error);
+                            continue; // Continue to find more errors
+                        }
+                    };
+
+                    let add_result = if positional.data_type.is_array() {
+                        result.add_array_value(&positional.destination, parse_value)
+                    } else {
+                        result.add_non_array_value(&positional.destination, parse_value)
+                    };
+
+                    if let Err(_) = add_result {
+                        let error = format!(
+                            "'{}' has already been parsed (this is a bug, report if it happens)",
+                            &positional.destination
+                        );
+                        result.add_error(error);
+                        continue; // Continue to find more errors
+                    }
+                }
+            }
+        }
+
+        for option in options {
+            if result.contains_key(&option.destination) {
+                continue; // Already been parsed
+            }
+
+            if option.is_required == Some(true) {
+                let error = format!("no value provided for option '{}'", &option.destination);
+                result.add_error(error);
+                continue;
+            } else if let Some(default_values) = option.default_values {
+                for default_value in default_values {
+                    let parse_value = match ParseValue::from_value(&default_value, option.data_type)
+                    {
+                        Ok(parse_value) => parse_value,
+                        Err(_) => {
+                            let error = format!(
+                                "'{}' is not of the correct data type (this is a bug, report if it happens)",
+                                &default_value
+                            );
+                            result.add_error(error);
+                            continue; // Continue to find more errors
+                        }
+                    };
+
+                    let add_result = if option.data_type.is_array() {
+                        result.add_array_value(&option.destination, parse_value)
+                    } else {
+                        result.add_non_array_value(&option.destination, parse_value)
+                    };
+
+                    if let Err(_) = add_result {
+                        let error = format!(
+                            "'{}' has already been parsed (this is a bug, report if it happens)",
+                            &option.destination
+                        );
+                        result.add_error(error);
+                        continue; // Continue to find more errors
+                    }
+                }
+            }
+        }
+
+        if !self.child_parsers.is_empty() && result.get_sub_parser_name().is_none() {
+            let error = "no sub-parser chosen".to_string();
+            result.add_error(error);
+        }
+
+        result
     }
 }
